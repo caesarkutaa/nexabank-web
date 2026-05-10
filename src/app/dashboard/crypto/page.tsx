@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import api from '../../lib/api';
 import { toast } from 'sonner';
+ import PageGuard from '../../../components/Pageguard';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface CryptoAddress {
@@ -190,6 +191,7 @@ export default function CryptoDepositPage() {
   const filtered = filter === 'all' ? addresses : addresses.filter(a => a.coin === filter);
 
   return (
+  <PageGuard pageKey="crypto">
     <div style={{ fontFamily: 'Inter, system-ui, sans-serif', color: '#e2e8f0', display: 'flex', flexDirection: 'column', gap: 24, padding: 'clamp(16px,3vw,32px)' }}>
 
       {/* Header */}
@@ -273,5 +275,6 @@ export default function CryptoDepositPage() {
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 10px; }
       `}</style>
     </div>
+      </PageGuard>
   );
 }

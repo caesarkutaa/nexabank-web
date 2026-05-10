@@ -23,7 +23,7 @@ const NAV = [
   { href: '/admin/admin/investments',  Icon: TrendingUp,      label: 'Investments'  },
   { href: '/admin/admin/crypto',       Icon: Bitcoin,         label: 'Crypto'       },
   { href: '/admin/admin/otp-config',   Icon: Key,             label: 'OTP Config'   },
-  { href: '/admin/admin/logs',         Icon: FileCode,        label: 'Audit Logs'   },
+  { href: '/admin/admin/logs',         Icon: FileCode,        label: 'Settings'   },
 ];
 
 function ini(a?: string, b?: string) {
