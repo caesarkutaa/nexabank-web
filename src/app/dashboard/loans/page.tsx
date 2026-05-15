@@ -2,539 +2,755 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Building2, Plus, Loader2, X, ChevronDown,
-  AlertCircle, DollarSign, Clock, Calendar,
+  Plus, Loader2, X, ChevronDown, AlertCircle, CheckCircle2,
+  Clock, XCircle, DollarSign, RefreshCw, Calendar, TrendingUp,
+  FileText, Shield, ChevronRight, Banknote, Info,
 } from 'lucide-react';
 import api from '../../lib/api';
 import { toast } from 'sonner';
 
+// ══ TYPES ══════════════════════════════════════════════════════
 interface Loan {
   _id: string;
   loanType: string;
-  loanPurpose?: string;
-  principalAmount: number;
-  outstandingBalance: number;
-  interestRate: number;
-  termMonths: number;
-  monthlyPayment: number;
-  status: 'pending'|'under_review'|'approved'|'disbursed'|'active'|'completed'|'rejected'|'defaulted';
-  disbursedAt?: string;
-  nextPaymentDate?: string;
-  totalPaid: number;
-  totalPayable: number;
-  creditScore?: number;
+  status: string;
+  requestedAmount: number;
+  approvedAmount?: number;
+  outstandingBalance?: number;
+  disbursedAmount?: number;
+  interestRate?: number;
+  termMonths?: number;
+  monthlyPayment?: number;
+  purpose: string;
+  annualIncomeAtApplication?: number;
+  creditScoreAtApplication?: number;
   rejectionReason?: string;
-  currency?: string;
+  nextPaymentDate?: string;
+  approvedAt?: string;
+  disbursedAt?: string;
+  paidOffAt?: string;
   createdAt: string;
+  repaymentSchedule?: Array<{
+    dueDate: string; amount: number; principal: number; interest: number; status: string;
+  }>;
+}
+
+interface CreditProfile {
+  creditScore: number;
+  creditRating: string;
+  totalCreditLimit: number;
+  creditUtilization: number;
+  activeLoans: number;
+  totalAmountOwed: number;
+  tips: string[];
 }
 
 interface Account {
-  _id: string;
-  accountNumber: string;
-  accountType: string;
-  nickname?: string;
-  availableBalance: number;
-  currency: string;
-  status: string;
+  _id: string; accountNumber: string; accountType: string;
+  nickname?: string; availableBalance: number; currency: string; status: string;
 }
 
-/* ── Currency formatter ── */
-function fmtC(amount: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style:'currency', currency: currency||'USD', minimumFractionDigits:2,
-    }).format(amount);
-  } catch {
-    return `${currency||'USD'} ${amount.toFixed(2)}`;
-  }
-}
-
-const fmtD = (d: string) =>
-  new Intl.DateTimeFormat(undefined, { month:'short', day:'numeric', year:'numeric' }).format(new Date(d));
-
+// ══ CONFIG ═════════════════════════════════════════════════════
 const LOAN_TYPES = [
-  { id:'personal',  label:'Personal Loan',  rate:'8–15% APR',  max:'50,000' },
-  { id:'auto',      label:'Auto Loan',       rate:'5–10% APR',  max:'80,000' },
-  { id:'mortgage',  label:'Mortgage',        rate:'3–7% APR',   max:'1,000,000' },
-  { id:'business',  label:'Business Loan',   rate:'7–20% APR',  max:'500,000' },
-  { id:'student',   label:'Student Loan',    rate:'4–8% APR',   max:'100,000' },
-  { id:'emergency', label:'Emergency Loan',  rate:'10–18% APR', max:'10,000' },
+  { value: 'personal',       label: 'Personal Loan',       icon: '👤', desc: 'For any personal expense'          },
+  { value: 'mortgage',       label: 'Mortgage',             icon: '🏠', desc: 'Home purchase or refinancing'      },
+  { value: 'auto',           label: 'Auto Loan',            icon: '🚗', desc: 'Vehicle purchase financing'        },
+  { value: 'business',       label: 'Business Loan',        icon: '💼', desc: 'Grow or start your business'       },
+  { value: 'student',        label: 'Student Loan',         icon: '🎓', desc: 'Education financing'               },
+  { value: 'line_of_credit', label: 'Line of Credit',       icon: '💳', desc: 'Flexible revolving credit'         },
 ];
-const TERMS = [6,12,18,24,36,48,60];
 
-const STATUS_STYLE: Record<string,{bg:string;c:string}> = {
-  pending:      {bg:'rgba(251,191,36,.12)',  c:'#fbbf24'},
-  under_review: {bg:'rgba(96,165,250,.12)',  c:'#60a5fa'},
-  approved:     {bg:'rgba(52,211,153,.12)',  c:'#34d399'},
-  disbursed:    {bg:'rgba(52,211,153,.12)',  c:'#34d399'},
-  active:       {bg:'rgba(52,211,153,.12)',  c:'#34d399'},
-  completed:    {bg:'rgba(156,163,175,.12)', c:'#9ca3af'},
-  rejected:     {bg:'rgba(248,113,113,.12)', c:'#f87171'},
-  defaulted:    {bg:'rgba(248,113,113,.12)', c:'#f87171'},
+const STATUS_CFG: Record<string, { bg: string; color: string; Icon: typeof Clock; label: string }> = {
+  pending:      { bg: 'rgba(245,158,11,.12)', color: '#f59e0b', Icon: Clock,        label: 'Pending'      },
+  under_review: { bg: 'rgba(96,165,250,.12)', color: '#60a5fa', Icon: FileText,     label: 'Under Review' },
+  approved:     { bg: 'rgba(52,211,153,.12)', color: '#34d399', Icon: CheckCircle2, label: 'Approved'     },
+  rejected:     { bg: 'rgba(239,68,68,.12)',  color: '#f87171', Icon: XCircle,      label: 'Rejected'     },
+  active:       { bg: 'rgba(52,211,153,.12)', color: '#34d399', Icon: TrendingUp,   label: 'Active'       },
+  paid_off:     { bg: 'rgba(167,139,250,.12)',color: '#a78bfa', Icon: CheckCircle2, label: 'Paid Off'     },
+  defaulted:    { bg: 'rgba(239,68,68,.12)',  color: '#f87171', Icon: XCircle,      label: 'Defaulted'    },
 };
 
-/* ── Apply Modal ── */
-function ApplyModal({ accounts, onClose, onDone }: {
-  accounts: Account[]; onClose:()=>void; onDone:()=>void;
-}) {
-  const [loanType,   setLoanType]   = useState('personal');
-  const [amount,     setAmount]     = useState('');
-  const [term,       setTerm]       = useState(12);
-  const [purpose,    setPurpose]    = useState('');
-  const [accountId,  setAccountId]  = useState(accounts[0]?._id ?? '');
-  const [employment, setEmployment] = useState('employed');
-  const [income,     setIncome]     = useState('');
-  const [loading,    setLoading]    = useState(false);
+// ══ FORMATTERS ═════════════════════════════════════════════════
+const usd = (n: number) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(n ?? 0);
+function fmtC(n: number, cur: string): string {
+  try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: cur || 'USD', minimumFractionDigits: 2 }).format(n ?? 0); }
+  catch { return `${cur} ${(n ?? 0).toFixed(2)}`; }
+}
+const fmtDate = (iso?: string) =>
+  iso ? new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
 
-  const selAcc  = accounts.find(a => a._id===accountId);
-  const cur     = selAcc?.currency || 'USD';
-  const f       = (n: number) => fmtC(n, cur);
-  const num     = parseFloat(amount) || 0;
-  const estRate = 12;
-  const monthlyEst = num>0 ? (num*(estRate/100/12))/(1-Math.pow(1+estRate/100/12,-term)) : 0;
+// Credit score bar color
+function scoreColor(score: number) {
+  if (score >= 750) return '#34d399';
+  if (score >= 700) return '#60a5fa';
+  if (score >= 650) return '#f59e0b';
+  if (score >= 600) return '#fb923c';
+  return '#f87171';
+}
+
+// ══ SHARED INPUT STYLE ══════════════════════════════════════════
+const inp: React.CSSProperties = {
+  width: '100%', background: '#1e2940', border: '1px solid rgba(255,255,255,.15)',
+  borderRadius: 10, padding: '11px 14px', fontSize: 14, color: '#fff',
+  outline: 'none', fontFamily: 'inherit', WebkitTextFillColor: '#fff',
+  boxSizing: 'border-box', transition: 'border-color .2s',
+};
+const fgGold = (e: React.FocusEvent<any>) => (e.target.style.borderColor = 'rgba(245,158,11,.5)');
+const blrReset = (e: React.FocusEvent<any>) => (e.target.style.borderColor = 'rgba(255,255,255,.15)');
+
+// ══ OTP BOXES ══════════════════════════════════════════════════
+function OtpBoxes({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <input key={i} id={`lotp${i}`} maxLength={1}
+          style={{ width: 44, height: 52, textAlign: 'center', fontSize: 20, fontWeight: 700, color: '#fff', background: '#1e2940', border: '1.5px solid rgba(255,255,255,.15)', borderRadius: 10, outline: 'none', fontFamily: 'monospace', WebkitTextFillColor: '#fff' }}
+          value={value[i] ?? ''}
+          onChange={e => {
+            const v = e.target.value.replace(/\D/g, '');
+            const a = value.split(''); a[i] = v; onChange(a.join('').slice(0, 6));
+            if (v && i < 5) document.getElementById(`lotp${i + 1}`)?.focus();
+          }}
+          onFocus={e => (e.target.style.borderColor = 'rgba(245,158,11,.6)')}
+          onBlur={e  => (e.target.style.borderColor = 'rgba(255,255,255,.15)')}
+          onKeyDown={e => { if (e.key === 'Backspace' && !value[i] && i > 0) document.getElementById(`lotp${i - 1}`)?.focus(); }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ══ APPLY LOAN MODAL ═══════════════════════════════════════════
+function ApplyModal({ accounts, onClose, onDone }: {
+  accounts: Account[]; onClose: () => void; onDone: () => void;
+}) {
+  // Field names match ApplyLoanDto EXACTLY:
+  // loanType, requestedAmount, termMonths, purpose, annualIncome, collateral
+  const [loanType,         setLoanType]         = useState('personal');
+  const [requestedAmount,  setRequestedAmount]  = useState('');
+  const [termMonths,       setTermMonths]        = useState('24');
+  const [purpose,          setPurpose]           = useState('');
+  const [annualIncome,     setAnnualIncome]      = useState('');
+  const [collateral,       setCollateral]        = useState('');
+  const [loading,          setLoading]           = useState(false);
+
+  // Estimated monthly payment preview
+  const principal = parseFloat(requestedAmount) || 0;
+  const months    = parseInt(termMonths)         || 24;
+  // Rough estimate at 10% APR
+  const r = 0.10 / 12;
+  const estPayment = principal > 0 && months > 0
+    ? +(principal * r / (1 - Math.pow(1 + r, -months))).toFixed(2)
+    : 0;
 
   const submit = async () => {
-    if (!amount||num<=0) return toast.error('Enter loan amount');
-    if (!accountId) return toast.error('Select disbursement account');
+    if (!requestedAmount || parseFloat(requestedAmount) <= 0) return toast.error('Enter a valid loan amount');
+    if (!purpose.trim()) return toast.error('Loan purpose is required');
+    if (!annualIncome || parseFloat(annualIncome) <= 0) return toast.error('Enter your annual income');
     setLoading(true);
     try {
+      // Sending EXACTLY what ApplyLoanDto expects — no extra fields
       await api.post('/loans/apply', {
-        loanType, amount:num, termMonths:term, loanPurpose:purpose,
-        disbursementAccountId:accountId, employmentStatus:employment,
-        monthlyIncome: parseFloat(income)||undefined,
+        loanType,
+        requestedAmount: parseFloat(requestedAmount),
+        termMonths:      parseInt(termMonths),
+        purpose:         purpose.trim(),
+        annualIncome:    parseFloat(annualIncome),
+        collateral:      collateral.trim() || undefined,
       });
-      toast.success('Loan application submitted!');
+      toast.success('Loan application submitted! We will review within 2 business days.');
       onDone(); onClose();
-    } catch (e:any) { toast.error(e.response?.data?.message||'Application failed'); }
-    finally { setLoading(false); }
+    } catch (e: any) {
+      // Show the first validation message if it comes as an array
+      const msg = e.response?.data?.message;
+      toast.error(Array.isArray(msg) ? msg[0] : (msg || 'Application failed'));
+    } finally { setLoading(false); }
   };
 
-  /* currency symbol for prefix */
-  const sym = (() => { try { return (0).toLocaleString(undefined,{style:'currency',currency:cur,minimumFractionDigits:0,maximumFractionDigits:0}).replace(/\d/g,'').trim(); } catch { return cur; } })();
-
   return (
-    <div className="nx-over">
-      <div className="nx-modal" style={{ maxWidth:520 }}>
+    <div className="nx-over" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="nx-modal" style={{ maxWidth: 540 }}>
         <div className="nx-mhdr">
           <h3 className="nx-mtitle">Apply for a Loan</h3>
-          <button className="nx-xbtn" onClick={onClose}><X size={16}/></button>
+          <button className="nx-xbtn" onClick={onClose}><X size={16} /></button>
         </div>
 
-        <div className="nx-fg">
-          <label className="nx-lbl">Loan Type</label>
-          <div className="ltypes">
+        {/* Loan type grid */}
+        <div>
+          <label style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,.6)', display: 'block', marginBottom: 8 }}>Loan Type</label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8 }}>
             {LOAN_TYPES.map(t => (
-              <button key={t.id} onClick={() => setLoanType(t.id)}
-                className={`ltype-btn ${loanType===t.id?'ltype-on':''}`}>
-                <span className="ltype-label">{t.label}</span>
-                <span className="ltype-meta">{t.rate} · up to {cur==='USD'?'$':sym}{t.max}</span>
+              <button key={t.value} onClick={() => setLoanType(t.value)}
+                style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 12px', borderRadius: 11, border: `${loanType === t.value ? 1.5 : 1}px solid ${loanType === t.value ? 'rgba(245,158,11,.6)' : 'rgba(255,255,255,.12)'}`, background: loanType === t.value ? 'rgba(245,158,11,.1)' : 'rgba(255,255,255,.03)', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'all .15s' }}>
+                <span style={{ fontSize: 20 }}>{t.icon}</span>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: loanType === t.value ? '#f59e0b' : 'rgba(255,255,255,.75)' }}>{t.label}</div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginTop: 1 }}>{t.desc}</div>
+                </div>
               </button>
             ))}
           </div>
         </div>
 
-        <div className="form-row">
-          <div className="nx-fg">
-            <label className="nx-lbl">Amount ({cur})</label>
-            <div style={{ position:'relative' }}>
-              <span style={{ position:'absolute', left:13, top:'50%', transform:'translateY(-50%)', color:'rgba(255,255,255,.4)', fontSize:13, fontWeight:700, pointerEvents:'none', fontFamily:'monospace' }}>{sym}</span>
-              <input className="nx-inp" type="number" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="e.g. 5000" style={{ paddingLeft: sym.length>2?40:26 }}/>
+        {/* Amount + Term */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,.6)' }}>Loan Amount (USD) *</label>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,.4)', fontSize: 14, fontWeight: 700, pointerEvents: 'none' }}>$</span>
+              <input type="number" min="100" step="100" value={requestedAmount} onChange={e => setRequestedAmount(e.target.value)}
+                placeholder="e.g. 10000" style={{ ...inp, paddingLeft: 26 }} onFocus={fgGold} onBlur={blrReset} />
             </div>
-          </div>
-          <div className="nx-fg">
-            <label className="nx-lbl">Term</label>
-            <div className="nx-selwrap">
-              <select className="nx-sel" value={term} onChange={e=>setTerm(Number(e.target.value))}>
-                {TERMS.map(t => <option key={t} value={t}>{t} months</option>)}
-              </select>
-              <ChevronDown size={13} className="nx-sel-ico"/>
-            </div>
-          </div>
-        </div>
-
-        <div className="nx-fg">
-          <label className="nx-lbl">Purpose <span style={{ color:'rgba(255,255,255,.3)', fontWeight:400 }}>(optional)</span></label>
-          <input className="nx-inp" value={purpose} onChange={e=>setPurpose(e.target.value)} placeholder="e.g. Home renovation, debt consolidation"/>
-        </div>
-
-        <div className="nx-fg">
-          <label className="nx-lbl">Disbursement Account</label>
-          <div className="nx-selwrap">
-            <select className="nx-sel" value={accountId} onChange={e=>setAccountId(e.target.value)}>
-              {accounts.map(a => (
-                <option key={a._id} value={a._id}>
-                  [{a.currency||'USD'}] {a.nickname||a.accountType?.replace(/_/g,' ')} ···{a.accountNumber.slice(-4)}
-                </option>
+            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+              {[1000, 5000, 10000, 25000, 50000].map(a => (
+                <button key={a} onClick={() => setRequestedAmount(String(a))}
+                  style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,.12)', background: requestedAmount === String(a) ? 'rgba(245,158,11,.15)' : 'rgba(255,255,255,.04)', color: requestedAmount === String(a) ? '#f59e0b' : 'rgba(255,255,255,.45)', cursor: 'pointer', fontFamily: 'monospace' }}>
+                  ${a.toLocaleString()}
+                </button>
               ))}
-            </select>
-            <ChevronDown size={13} className="nx-sel-ico"/>
+            </div>
           </div>
-        </div>
-
-        <div className="form-row">
-          <div className="nx-fg">
-            <label className="nx-lbl">Employment Status</label>
-            <div className="nx-selwrap">
-              <select className="nx-sel" value={employment} onChange={e=>setEmployment(e.target.value)}>
-                <option value="employed">Employed</option>
-                <option value="self_employed">Self-Employed</option>
-                <option value="unemployed">Unemployed</option>
-                <option value="retired">Retired</option>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,.6)' }}>Term (Months)</label>
+            <div style={{ position: 'relative' }}>
+              <select value={termMonths} onChange={e => setTermMonths(e.target.value)}
+                style={{ ...inp, appearance: 'none', cursor: 'pointer' }} onFocus={fgGold} onBlur={blrReset}>
+                {[6, 12, 18, 24, 36, 48, 60, 84, 120, 180, 240, 360].map(m => (
+                  <option key={m} value={m}>{m} months{m >= 12 ? ` (${m / 12}yr${m > 12 ? 's' : ''})` : ''}</option>
+                ))}
               </select>
-              <ChevronDown size={13} className="nx-sel-ico"/>
-            </div>
-          </div>
-          <div className="nx-fg">
-            <label className="nx-lbl">Monthly Income <span style={{ color:'rgba(255,255,255,.3)', fontWeight:400 }}>(opt.)</span></label>
-            <div style={{ position:'relative' }}>
-              <span style={{ position:'absolute', left:13, top:'50%', transform:'translateY(-50%)', color:'rgba(255,255,255,.4)', fontSize:13, fontWeight:700, pointerEvents:'none', fontFamily:'monospace' }}>{sym}</span>
-              <input className="nx-inp" type="number" value={income} onChange={e=>setIncome(e.target.value)} placeholder="0" style={{ paddingLeft:sym.length>2?40:26 }}/>
+              <ChevronDown size={13} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,.4)', pointerEvents: 'none' }} />
             </div>
           </div>
         </div>
 
-        {num>0 && (
-          <div className="est-box">
-            <div className="est-title">Estimated Monthly Payment</div>
-            <div className="est-amount">{f(monthlyEst)}</div>
-            <div className="est-note">~{estRate}% APR over {term} months · actual rate based on credit profile</div>
+        {/* Purpose */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,.6)' }}>Loan Purpose *</label>
+          <input type="text" value={purpose} onChange={e => setPurpose(e.target.value)}
+            placeholder="e.g. Home renovation, Debt consolidation, Business expansion..."
+            style={inp} onFocus={fgGold} onBlur={blrReset} />
+        </div>
+
+        {/* Annual income */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,.6)' }}>Annual Gross Income (USD) *</label>
+          <div style={{ position: 'relative' }}>
+            <span style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,.4)', fontSize: 14, fontWeight: 700, pointerEvents: 'none' }}>$</span>
+            <input type="number" min="1000" step="1000" value={annualIncome} onChange={e => setAnnualIncome(e.target.value)}
+              placeholder="e.g. 75000" style={{ ...inp, paddingLeft: 26 }} onFocus={fgGold} onBlur={blrReset} />
+          </div>
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,.3)' }}>Used to assess your debt-to-income ratio</span>
+        </div>
+
+        {/* Collateral (optional) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,.6)' }}>Collateral <span style={{ color: 'rgba(255,255,255,.3)', fontWeight: 400 }}>(optional)</span></label>
+          <input type="text" value={collateral} onChange={e => setCollateral(e.target.value)}
+            placeholder="e.g. Vehicle, Property, Savings account..."
+            style={inp} onFocus={fgGold} onBlur={blrReset} />
+        </div>
+
+        {/* Estimated payment preview */}
+        {estPayment > 0 && (
+          <div style={{ background: 'rgba(245,158,11,.08)', border: '1px solid rgba(245,158,11,.2)', borderRadius: 12, padding: '13px 15px' }}>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '.05em' }}>Estimated Monthly Payment</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+              <div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#f59e0b', fontFamily: 'monospace' }}>{usd(estPayment)}/mo</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>At ~10% APR · Final rate based on credit profile</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>Total Repayment</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', fontFamily: 'monospace' }}>{usd(estPayment * months)}</div>
+              </div>
+            </div>
           </div>
         )}
 
-        <button className="nx-subbtn" onClick={submit} disabled={loading||num<=0||!accountId}>
-          {loading?<><Loader2 size={15} className="nx-spin"/> Submitting…</>:'Submit Application'}
+        {/* Disclaimer */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: 'rgba(96,165,250,.07)', border: '1px solid rgba(96,165,250,.15)', borderRadius: 10, padding: '10px 13px' }}>
+          <Info size={13} color="#60a5fa" style={{ flexShrink: 0, marginTop: 1 }} />
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,.45)', margin: 0, lineHeight: 1.6 }}>
+            Loan approval is subject to credit assessment. Your KYC must be verified. Submitting an application does not guarantee approval.
+          </p>
+        </div>
+
+        <button className="nx-subbtn" onClick={submit} disabled={loading}>
+          {loading ? <><Loader2 size={15} className="nx-spin" /> Submitting…</> : 'Submit Application'}
         </button>
       </div>
-      <LS/>
     </div>
   );
 }
 
-/* ── Repay Modal ── */
+// ══ REPAY MODAL (2-step: initiate → OTP confirm) ═══════════════
 function RepayModal({ loan, accounts, onClose, onDone }: {
-  loan:Loan; accounts:Account[]; onClose:()=>void; onDone:()=>void;
+  loan: Loan; accounts: Account[]; onClose: () => void; onDone: () => void;
 }) {
-  const [amount,    setAmount]    = useState(String(loan.monthlyPayment.toFixed(2)));
+  type Step = 'form' | 'otp';
+  const [step,      setStep]      = useState<Step>('form');
   const [accountId, setAccountId] = useState(accounts[0]?._id ?? '');
+  const [amount,    setAmount]    = useState(String(loan.monthlyPayment ?? ''));
+  const [otp,       setOtp]       = useState('');
   const [loading,   setLoading]   = useState(false);
 
-  const selAcc = accounts.find(a => a._id===accountId);
-  const cur    = loan.currency || selAcc?.currency || 'USD';
-  const f      = (n: number) => fmtC(n, cur);
+  const selAcc = accounts.find(a => a._id === accountId);
+  const amtNum = parseFloat(amount) || 0;
+  const maxPay = Math.min(amtNum, loan.outstandingBalance ?? 0);
+  const insuf  = selAcc && amtNum > selAcc.availableBalance;
 
-  const submit = async () => {
-    const num = parseFloat(amount);
-    if (!num||num<=0) return toast.error('Enter repayment amount');
+  const initiate = async () => {
+    if (!amtNum || amtNum <= 0) return toast.error('Enter a valid amount');
+    if (insuf) return toast.error('Insufficient funds');
     setLoading(true);
     try {
-      await api.post(`/loans/${loan._id}/repay`, { amount:num, paymentAccountId:accountId });
-      toast.success('Payment processed!'); onDone(); onClose();
-    } catch (e:any) { toast.error(e.response?.data?.message||'Payment failed'); }
-    finally { setLoading(false); }
+      await api.post('/loans/initiate-repay', {
+        loanId:    loan._id,
+        accountId,
+        amount:    amtNum,
+      });
+      toast.success('OTP sent to your email!');
+      setStep('otp');
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Failed to initiate');
+    } finally { setLoading(false); }
   };
 
-  const sym = (() => { try { return (0).toLocaleString(undefined,{style:'currency',currency:cur,minimumFractionDigits:0,maximumFractionDigits:0}).replace(/\d/g,'').trim(); } catch { return cur; } })();
+  const confirm = async () => {
+    if (otp.length !== 6) return toast.error('Enter the 6-digit OTP');
+    setLoading(true);
+    try {
+      // LoanRepaymentDto: { loanId, accountId, amount, otp }
+      await api.post('/loans/repay', {
+        loanId:    loan._id,
+        accountId,
+        amount:    amtNum,
+        otp,
+      });
+      toast.success('Repayment successful!');
+      onDone(); onClose();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Repayment failed');
+    } finally { setLoading(false); }
+  };
 
   return (
-    <div className="nx-over">
-      <div className="nx-modal" style={{ maxWidth:400 }}>
+    <div className="nx-over" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="nx-modal">
         <div className="nx-mhdr">
-          <h3 className="nx-mtitle">Make a Payment</h3>
-          <button className="nx-xbtn" onClick={onClose}><X size={16}/></button>
+          <h3 className="nx-mtitle">Loan Repayment</h3>
+          <button className="nx-xbtn" onClick={onClose}><X size={16} /></button>
         </div>
-        <div className="linfo-box">
-          {[
-            { l:'Outstanding Balance', v:f(loan.outstandingBalance) },
-            { l:'Monthly Payment',     v:f(loan.monthlyPayment) },
-            ...(loan.nextPaymentDate ? [{ l:'Next Due Date', v:fmtD(loan.nextPaymentDate) }] : []),
-          ].map(({ l, v }) => (
-            <div key={l} className="linfo-row"><span>{l}</span><strong>{v}</strong></div>
-          ))}
-        </div>
-        <div className="nx-fg">
-          <label className="nx-lbl">Payment Amount ({cur})</label>
-          <div style={{ position:'relative' }}>
-            <span style={{ position:'absolute', left:13, top:'50%', transform:'translateY(-50%)', color:'rgba(255,255,255,.4)', fontSize:13, fontWeight:700, pointerEvents:'none', fontFamily:'monospace' }}>{sym}</span>
-            <input className="nx-inp" type="number" value={amount} onChange={e=>setAmount(e.target.value)} style={{ paddingLeft:sym.length>2?40:26 }}/>
-          </div>
-          <div style={{ display:'flex', gap:8, marginTop:6, flexWrap:'wrap' }}>
-            {[{ l:'Monthly', v:loan.monthlyPayment }, { l:'Full Balance', v:loan.outstandingBalance }].map(({ l, v }) => (
-              <button key={l} onClick={() => setAmount(v.toFixed(2))}
-                style={{ background:'rgba(245,158,11,.1)', border:'1px solid rgba(245,158,11,.25)', color:'#f59e0b', fontSize:11, fontWeight:700, padding:'4px 10px', borderRadius:7, cursor:'pointer', fontFamily:'inherit' }}>
-                {l}: {f(v)}
-              </button>
-            ))}
+
+        {/* Loan summary */}
+        <div style={{ background: 'rgba(52,211,153,.07)', border: '1px solid rgba(52,211,153,.18)', borderRadius: 12, padding: '13px 15px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+            <div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginBottom: 3 }}>Outstanding Balance</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', fontFamily: 'monospace' }}>{usd(loan.outstandingBalance ?? 0)}</div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginBottom: 3 }}>Monthly Payment</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#34d399', fontFamily: 'monospace' }}>{usd(loan.monthlyPayment ?? 0)}</div>
+            </div>
           </div>
         </div>
-        <div className="nx-fg">
-          <label className="nx-lbl">Pay From Account</label>
-          <div className="nx-selwrap">
-            <select className="nx-sel" value={accountId} onChange={e=>setAccountId(e.target.value)}>
-              {accounts.map(a => (
-                <option key={a._id} value={a._id}>
-                  [{a.currency||'USD'}] {a.nickname||a.accountType?.replace(/_/g,' ')} ···{a.accountNumber.slice(-4)} — {fmtC(a.availableBalance, a.currency||'USD')}
-                </option>
-              ))}
-            </select>
-            <ChevronDown size={13} className="nx-sel-ico"/>
-          </div>
-        </div>
-        <button className="nx-subbtn" onClick={submit} disabled={loading||!parseFloat(amount)}>
-          {loading?<><Loader2 size={15} className="nx-spin"/> Processing…</>:'Make Payment'}
-        </button>
+
+        {step === 'form' && (
+          <>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,.6)' }}>Payment Amount (USD)</label>
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,.4)', fontSize: 14, fontWeight: 700, pointerEvents: 'none' }}>$</span>
+                <input type="number" min="0.01" step="0.01" value={amount} onChange={e => setAmount(e.target.value)}
+                  placeholder="Amount to pay" style={{ ...inp, paddingLeft: 26 }} onFocus={fgGold} onBlur={blrReset} />
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {loan.monthlyPayment && (
+                  <button onClick={() => setAmount(String(loan.monthlyPayment))}
+                    style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 7, border: '1px solid rgba(52,211,153,.3)', background: 'rgba(52,211,153,.08)', color: '#34d399', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    Monthly {usd(loan.monthlyPayment)}
+                  </button>
+                )}
+                {loan.outstandingBalance && (
+                  <button onClick={() => setAmount(String(loan.outstandingBalance))}
+                    style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 7, border: '1px solid rgba(245,158,11,.3)', background: 'rgba(245,158,11,.08)', color: '#f59e0b', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    Pay Off {usd(loan.outstandingBalance)}
+                  </button>
+                )}
+              </div>
+              {insuf && <span style={{ fontSize: 12, color: '#f87171', display: 'flex', alignItems: 'center', gap: 5 }}><AlertCircle size={12} /> Insufficient funds</span>}
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,.6)' }}>Pay From Account</label>
+              <div style={{ position: 'relative' }}>
+                <select value={accountId} onChange={e => setAccountId(e.target.value)}
+                  style={{ ...inp, appearance: 'none', cursor: 'pointer' }} onFocus={fgGold} onBlur={blrReset}>
+                  {accounts.map(a => (
+                    <option key={a._id} value={a._id}>
+                      [{a.currency}] {a.nickname || a.accountType.replace(/_/g, ' ')} ···{a.accountNumber.slice(-4)} — {fmtC(a.availableBalance, a.currency)}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={13} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,.4)', pointerEvents: 'none' }} />
+              </div>
+            </div>
+
+            <button className="nx-subbtn" onClick={initiate} disabled={loading || !amtNum || amtNum <= 0 || !!insuf}>
+              {loading ? <><Loader2 size={15} className="nx-spin" /> Sending OTP…</> : 'Continue — Get OTP'}
+            </button>
+          </>
+        )}
+
+        {step === 'otp' && (
+          <>
+            <div style={{ textAlign: 'center', padding: '6px 0' }}>
+              <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'rgba(52,211,153,.1)', border: '1px solid rgba(52,211,153,.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                <Shield size={26} color="#34d399" />
+              </div>
+              <h4 style={{ fontSize: 16, fontWeight: 800, color: '#fff', margin: '0 0 6px' }}>Authorize Payment</h4>
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', margin: 0 }}>
+                Enter the 6-digit code sent to your email to pay <strong style={{ color: '#34d399' }}>{usd(amtNum)}</strong>
+              </p>
+            </div>
+            <OtpBoxes value={otp} onChange={setOtp} />
+            <button className="nx-subbtn" style={{ background: 'linear-gradient(135deg,#059669,#34d399)', color: '#050d1a' }} onClick={confirm} disabled={loading || otp.length !== 6}>
+              {loading ? <><Loader2 size={15} className="nx-spin" /> Processing…</> : `Confirm — Pay ${usd(amtNum)}`}
+            </button>
+            <button onClick={() => { setStep('form'); setOtp(''); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.35)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center' }}>
+              ← Back
+            </button>
+          </>
+        )}
       </div>
-      <LS/>
     </div>
   );
 }
 
-/* ── Main ── */
+// ══ LOAN CARD ══════════════════════════════════════════════════
+function LoanCard({ loan, onRepay }: { loan: Loan; onRepay: (l: Loan) => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const cfg = STATUS_CFG[loan.status] ?? STATUS_CFG.pending;
+  const { Icon: SIcon, bg, color, label } = cfg;
+  const loanTypeCfg = LOAN_TYPES.find(t => t.value === loan.type) ??
+    LOAN_TYPES.find(t => t.value === loan.loanType);
+  const canRepay = loan.status === 'active' && (loan.outstandingBalance ?? 0) > 0;
+
+  return (
+    <div style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 18, overflow: 'hidden', transition: 'border-color .2s' }}
+      onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,.14)')}
+      onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,.08)')}>
+
+      {/* Header */}
+      <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 24 }}>{loanTypeCfg?.icon ?? '🏦'}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{loanTypeCfg?.label ?? loan.loanType?.replace(/_/g, ' ')}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: bg, color, fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100 }}>
+              <SIcon size={10} /> {label}
+            </span>
+          </div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>{loan.purpose} · Applied {fmtDate(loan.createdAt)}</div>
+        </div>
+        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', fontFamily: 'monospace' }}>
+            {usd(loan.approvedAmount ?? loan.requestedAmount)}
+          </div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', marginTop: 1 }}>
+            {loan.status === 'active' ? 'Approved Amount' : 'Requested'}
+          </div>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div style={{ padding: '14px 18px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 12 }}>
+        {loan.status === 'active' && ([
+          { label: 'Outstanding',  val: usd(loan.outstandingBalance ?? 0), color: '#f87171' },
+          { label: 'Monthly Pay',  val: usd(loan.monthlyPayment ?? 0),    color: '#f59e0b' },
+          { label: 'Interest Rate',val: `${loan.interestRate ?? 0}% APR`, color: '#60a5fa' },
+          { label: 'Next Payment', val: fmtDate(loan.nextPaymentDate),    color: '#fff'    },
+        ] as const).map(({ label, val, color: c }) => (
+          <div key={label}>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 3 }}>{label}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: c, fontFamily: 'monospace' }}>{val}</div>
+          </div>
+        ))}
+        {loan.status !== 'active' && ([
+          { label: 'Requested', val: usd(loan.requestedAmount)               },
+          { label: 'Term',      val: `${loan.termMonths} months`             },
+          { label: 'Est. Rate', val: `${loan.interestRate ?? '—'}% APR`     },
+          { label: 'Status',    val: label                                    },
+        ] as const).map(({ label: l, val }) => (
+          <div key={l}>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 3 }}>{l}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{val}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Rejection note */}
+      {loan.status === 'rejected' && loan.rejectionReason && (
+        <div style={{ margin: '0 18px 14px', background: 'rgba(239,68,68,.08)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 10, padding: '10px 13px', fontSize: 13, color: '#fca5a5' }}>
+          Reason: {loan.rejectionReason}
+        </div>
+      )}
+
+      {/* Progress bar for active loans */}
+      {loan.status === 'active' && loan.approvedAmount && loan.outstandingBalance !== undefined && (
+        <div style={{ padding: '0 18px 14px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 11, color: 'rgba(255,255,255,.35)' }}>
+            <span>Paid: {usd(loan.approvedAmount - loan.outstandingBalance)}</span>
+            <span>Remaining: {usd(loan.outstandingBalance)}</span>
+          </div>
+          <div style={{ height: 6, background: 'rgba(255,255,255,.08)', borderRadius: 100, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${Math.min(100, ((loan.approvedAmount - loan.outstandingBalance) / loan.approvedAmount) * 100)}%`, background: 'linear-gradient(90deg,#34d399,#059669)', borderRadius: 100, transition: 'width .5s' }} />
+          </div>
+        </div>
+      )}
+
+      {/* Actions */}
+      <div style={{ padding: '10px 18px', borderTop: '1px solid rgba(255,255,255,.05)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {canRepay && (
+          <button onClick={() => onRepay(loan)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'linear-gradient(135deg,#059669,#34d399)', color: '#050d1a', border: 'none', borderRadius: 9, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+            <DollarSign size={14} /> Make Payment
+          </button>
+        )}
+        {loan.repaymentSchedule && loan.repaymentSchedule.length > 0 && (
+          <button onClick={() => setExpanded(v => !v)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 9, padding: '8px 14px', fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,.6)', cursor: 'pointer', fontFamily: 'inherit' }}>
+            <Calendar size={14} /> {expanded ? 'Hide' : 'View'} Schedule
+          </button>
+        )}
+      </div>
+
+      {/* Repayment schedule */}
+      {expanded && loan.repaymentSchedule && loan.repaymentSchedule.length > 0 && (
+        <div style={{ borderTop: '1px solid rgba(255,255,255,.05)', maxHeight: 280, overflowY: 'auto' }}>
+          <div style={{ padding: '10px 18px 5px', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.3)', textTransform: 'uppercase', letterSpacing: '.06em', display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr 1fr', gap: 8 }}>
+            <span>Due Date</span><span>Payment</span><span>Principal</span><span>Interest</span><span>Status</span>
+          </div>
+          {loan.repaymentSchedule.map((row, i) => (
+            <div key={i} style={{ padding: '8px 18px', display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr 1fr', gap: 8, fontSize: 12, borderTop: '1px solid rgba(255,255,255,.04)', background: row.status === 'paid' ? 'rgba(52,211,153,.04)' : 'transparent' }}>
+              <span style={{ color: 'rgba(255,255,255,.55)' }}>{fmtDate(row.dueDate)}</span>
+              <span style={{ fontFamily: 'monospace', color: '#fff' }}>{usd(row.amount)}</span>
+              <span style={{ fontFamily: 'monospace', color: 'rgba(255,255,255,.55)' }}>{usd(row.principal)}</span>
+              <span style={{ fontFamily: 'monospace', color: 'rgba(255,255,255,.55)' }}>{usd(row.interest)}</span>
+              <span style={{ color: row.status === 'paid' ? '#34d399' : 'rgba(255,255,255,.4)', textTransform: 'capitalize', fontWeight: 600 }}>{row.status}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══ CREDIT PROFILE CARD ════════════════════════════════════════
+function CreditCard({ profile }: { profile: CreditProfile }) {
+  const sc = scoreColor(profile.creditScore);
+  const pct = Math.min(100, ((profile.creditScore - 300) / (850 - 300)) * 100);
+  return (
+    <div style={{ background: 'linear-gradient(135deg,#0a2342,#0d2d52)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 20, padding: '22px', position: 'relative', overflow: 'hidden', marginBottom: 24 }}>
+      <div style={{ position: 'absolute', top: -50, right: -50, width: 180, height: 180, background: `radial-gradient(circle,${sc}15,transparent 70%)`, borderRadius: '50%', pointerEvents: 'none' }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+        <div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,.45)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Credit Score</div>
+          <div style={{ fontSize: 52, fontWeight: 900, color: sc, fontFamily: 'monospace', lineHeight: 1 }}>{profile.creditScore}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,.6)', marginTop: 4 }}>{profile.creditRating}</div>
+          {/* Score bar */}
+          <div style={{ marginTop: 12, width: 200 }}>
+            <div style={{ height: 6, background: 'rgba(255,255,255,.1)', borderRadius: 100, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${pct}%`, background: `linear-gradient(90deg,#f87171,#f59e0b,#34d399)`, borderRadius: 100 }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3, fontSize: 10, color: 'rgba(255,255,255,.25)' }}>
+              <span>300</span><span>Poor</span><span>Good</span><span>850</span>
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 160 }}>
+          {[
+            { label: 'Credit Limit',   val: usd(profile.totalCreditLimit)          },
+            { label: 'Amount Owed',    val: usd(profile.totalAmountOwed)            },
+            { label: 'Utilization',    val: `${profile.creditUtilization}%`         },
+            { label: 'Active Loans',   val: String(profile.activeLoans)             },
+          ].map(({ label, val }) => (
+            <div key={label} style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginBottom: 1 }}>{label}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', fontFamily: 'monospace' }}>{val}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {profile.tips.length > 0 && (
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,.07)' }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 6 }}>Tips to Improve</div>
+          {profile.tips.map((tip, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+              <ChevronRight size={11} color={sc} style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: 'rgba(255,255,255,.5)' }}>{tip}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══ MAIN PAGE ══════════════════════════════════════════════════
 export default function LoansPage() {
-  const [mounted,   setMounted]   = useState(false);
-  const [loans,     setLoans]     = useState<Loan[]>([]);
-  const [accounts,  setAccounts]  = useState<Account[]>([]);
-  const [loading,   setLoading]   = useState(true);
-  const [applying,  setApplying]  = useState(false);
-  const [repaying,  setRepaying]  = useState<Loan|null>(null);
-  const [expanded,  setExpanded]  = useState<string|null>(null);
+  const [mounted,      setMounted]      = useState(false);
+  const [loans,        setLoans]        = useState<Loan[]>([]);
+  const [profile,      setProfile]      = useState<CreditProfile | null>(null);
+  const [accounts,     setAccounts]     = useState<Account[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [showApply,    setShowApply]    = useState(false);
+  const [repayLoan,    setRepayLoan]    = useState<Loan | null>(null);
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [refreshing,   setRefreshing]   = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
 
   const load = useCallback(async () => {
     try {
-      const [lR, aR] = await Promise.all([api.get('/loans'), api.get('/accounts')]);
-      setLoans(lR.data.data || []);
-      setAccounts((aR.data.data||[]).filter((a:Account) => a.status==='active'));
+      const [lR, pR, aR] = await Promise.all([
+        api.get('/loans'),
+        api.get('/loans/credit-profile'),
+        api.get('/accounts'),
+      ]);
+      setLoans(lR.data.data ?? lR.data ?? []);
+      setProfile(pR.data.data ?? pR.data ?? null);
+      setAccounts((aR.data.data || []).filter((a: Account) => a.status === 'active'));
     } catch { toast.error('Failed to load loans'); }
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { if (mounted) load(); }, [load, mounted]);
-  if (!mounted) return <div style={{ minHeight:'100vh', background:'#0a0f1a' }}/>;
+  useEffect(() => { if (mounted) load(); }, [mounted, load]);
 
-  /* Use primary account currency for summary totals */
-  const primaryCur    = accounts.find(a => a.currency)?.currency || 'USD';
-  const active        = loans.filter(l => ['active','disbursed'].includes(l.status));
-  const pending       = loans.filter(l => ['pending','under_review','approved'].includes(l.status));
-  const completed     = loans.filter(l => ['completed','rejected','defaulted'].includes(l.status));
-  const totalOutstanding = active.reduce((s,l) => s+l.outstandingBalance, 0);
-  const totalMonthly     = active.reduce((s,l) => s+l.monthlyPayment,     0);
-  const sf = (n: number) => fmtC(n, primaryCur);
+  const refresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
+
+  if (!mounted) return <div style={{ minHeight: '100vh', background: '#0a0f1a' }} />;
+
+  const FILTERS = [
+    { val: 'all',         label: 'All'          },
+    { val: 'active',      label: 'Active'        },
+    { val: 'under_review',label: 'Under Review'  },
+    { val: 'approved',    label: 'Approved'      },
+    { val: 'paid_off',    label: 'Paid Off'      },
+    { val: 'rejected',    label: 'Rejected'      },
+  ];
+  const filtered = activeFilter === 'all' ? loans : loans.filter(l => l.status === activeFilter);
+  const activeCount = loans.filter(l => l.status === 'active').length;
 
   return (
     <div className="pg">
+      {/* Header */}
       <div className="hdr">
         <div>
-          <h1 className="ttl">Loans</h1>
-          <p className="sub">Personal, auto, mortgage and business loans</p>
+          <h1 className="ttl">Loans & Credit</h1>
+          <p className="sub">{loans.length} application{loans.length !== 1 ? 's' : ''} · {activeCount} active loan{activeCount !== 1 ? 's' : ''}</p>
         </div>
-        <button className="addbtn" onClick={() => setApplying(true)} disabled={accounts.length===0}>
-          <Plus size={15}/> Apply for a Loan
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="nx-actbtn" onClick={refresh} disabled={refreshing}>
+            <RefreshCw size={14} className={refreshing ? 'nx-spin' : ''} />
+          </button>
+          <button className="addbtn" onClick={() => setShowApply(true)}>
+            <Plus size={15} /> Apply for Loan
+          </button>
+        </div>
       </div>
 
-      <div className="stats-grid">
-        {[
-          { l:'Active Loans',      v:String(active.length),  Icon:Building2, c:'#34d399' },
-          { l:'Pending',           v:String(pending.length),  Icon:Clock,     c:'#fbbf24' },
-          { l:'Total Outstanding', v:sf(totalOutstanding),    Icon:DollarSign,c:'#f87171' },
-          { l:'Monthly Due',       v:sf(totalMonthly),        Icon:Calendar,  c:'#f59e0b' },
-        ].map(({ l, v, Icon, c }) => (
-          <div key={l} className="scard">
-            <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:8 }}>
-              <Icon size={13} color={c}/>
-              <span className="scard-l">{l}</span>
-            </div>
-            <div className="scard-v" style={{ color:c }}>{v}</div>
-          </div>
+      {/* Credit profile */}
+      {profile && <CreditCard profile={profile} />}
+
+      {/* Filter tabs */}
+      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2, marginBottom: 18 }}>
+        {FILTERS.map(({ val, label }) => (
+          <button key={val} onClick={() => setActiveFilter(val)}
+            style={{ padding: '7px 14px', borderRadius: 9, fontSize: 12, fontWeight: 700, border: activeFilter === val ? '1.5px solid rgba(245,158,11,.5)' : '1px solid rgba(255,255,255,.09)', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', flexShrink: 0, background: activeFilter === val ? 'rgba(245,158,11,.12)' : 'rgba(255,255,255,.04)', color: activeFilter === val ? '#f59e0b' : 'rgba(255,255,255,.5)', transition: 'all .15s' }}>
+            {label}
+          </button>
         ))}
       </div>
 
+      {/* Loan list */}
       {loading ? (
-        <div className="cen"><Loader2 size={20} className="nx-spin"/> Loading loans…</div>
-      ) : loans.length===0 ? (
-        <div className="empty">
-          <Building2 size={40} color="rgba(255,255,255,.12)"/>
-          <p>No loans yet. Apply for your first loan above.</p>
-          {accounts.length===0 && <p style={{ color:'#fbbf24', fontSize:13 }}>⚠ You need an active account first.</p>}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 280, gap: 10, color: 'rgba(255,255,255,.3)', fontSize: 14 }}>
+          <Loader2 size={20} className="nx-spin" color="#f59e0b" /> Loading loans…
+        </div>
+      ) : filtered.length === 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 260, gap: 14, background: 'rgba(255,255,255,.02)', border: '1px dashed rgba(255,255,255,.08)', borderRadius: 18, textAlign: 'center', padding: 24 }}>
+          <Banknote size={44} color="rgba(255,255,255,.12)" />
+          <div>
+            <p style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,.4)', margin: '0 0 6px' }}>
+              {activeFilter === 'all' ? 'No loan applications yet' : `No ${activeFilter.replace(/_/g, ' ')} loans`}
+            </p>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,.25)', margin: 0 }}>
+              {activeFilter === 'all' ? 'Apply for a loan to get started' : 'Try a different filter'}
+            </p>
+          </div>
+          {activeFilter === 'all' && (
+            <button className="addbtn" onClick={() => setShowApply(true)} style={{ marginTop: 4 }}>
+              <Plus size={15} /> Apply for Loan
+            </button>
+          )}
         </div>
       ) : (
-        <div className="loans-list">
-          {[...active, ...pending, ...completed].map(loan => {
-            const ss      = STATUS_STYLE[loan.status] ?? STATUS_STYLE.pending;
-            const isExp   = expanded===loan._id;
-            const canRepay= ['active','disbursed'].includes(loan.status);
-            const progress= loan.totalPayable>0 ? Math.min((loan.totalPaid/loan.totalPayable)*100,100) : 0;
-            /* Use loan's own currency if available, otherwise primary account */
-            const lc      = loan.currency || primaryCur;
-            const lf      = (n:number) => fmtC(n, lc);
-
-            return (
-              <div key={loan._id} className="lcard">
-                <button className="lcard-hdr" onClick={() => setExpanded(isExp?null:loan._id)}>
-                  <div className="lcard-hdr-left">
-                    <div className="lcard-ico" style={{ background:`${ss.c}18` }}>
-                      <Building2 size={16} color={ss.c}/>
-                    </div>
-                    <div style={{ minWidth:0 }}>
-                      <div className="lcard-title">
-                        {loan.loanType.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())} Loan
-                        {loan.loanPurpose && <span style={{ fontSize:12, color:'rgba(255,255,255,.35)', fontWeight:400, marginLeft:8 }}>{loan.loanPurpose}</span>}
-                      </div>
-                      <div className="lcard-meta">
-                        {lf(loan.principalAmount)} · {loan.termMonths}mo · {loan.interestRate}% APR
-                        <span style={{ marginLeft:8, fontSize:11, color:'rgba(255,255,255,.3)' }}>{fmtD(loan.createdAt)}</span>
-                        <span style={{ marginLeft:8, background:'rgba(245,158,11,.1)', border:'1px solid rgba(245,158,11,.2)', color:'#f59e0b', fontSize:9, fontWeight:700, padding:'1px 6px', borderRadius:100, verticalAlign:'middle' }}>{lc}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
-                    <span className="spill" style={{ background:ss.bg, color:ss.c }}>
-                      {loan.status.replace(/_/g,' ').toUpperCase()}
-                    </span>
-                    <ChevronDown size={16} color="rgba(255,255,255,.3)"
-                      style={{ transform:isExp?'rotate(180deg)':'none', transition:'transform .2s' }}/>
-                  </div>
-                </button>
-
-                {isExp && (
-                  <div className="lcard-body">
-                    {canRepay && loan.totalPayable>0 && (
-                      <div>
-                        <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6, fontSize:12 }}>
-                          <span style={{ color:'rgba(255,255,255,.45)' }}>Repayment Progress</span>
-                          <span style={{ color:'white', fontWeight:600 }}>{progress.toFixed(0)}% paid</span>
-                        </div>
-                        <div style={{ height:6, background:'rgba(255,255,255,.08)', borderRadius:3, overflow:'hidden' }}>
-                          <div style={{ height:'100%', borderRadius:3, width:`${progress}%`, background:'linear-gradient(90deg,#f59e0b,#34d399)', transition:'width .5s ease' }}/>
-                        </div>
-                        <div style={{ display:'flex', justifyContent:'space-between', marginTop:5, fontSize:11, color:'rgba(255,255,255,.3)' }}>
-                          <span>Paid: {lf(loan.totalPaid)}</span>
-                          <span>Remaining: {lf(loan.outstandingBalance)}</span>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="lcard-details">
-                      {[
-                        { l:'Principal',       v:lf(loan.principalAmount) },
-                        { l:'Interest Rate',   v:`${loan.interestRate}% APR` },
-                        { l:'Term',            v:`${loan.termMonths} months` },
-                        { l:'Monthly Payment', v:lf(loan.monthlyPayment) },
-                        { l:'Outstanding',     v:lf(loan.outstandingBalance) },
-                        { l:'Total Paid',      v:lf(loan.totalPaid) },
-                        ...(loan.nextPaymentDate ? [{ l:'Next Due',  v:fmtD(loan.nextPaymentDate) }] : []),
-                        ...(loan.disbursedAt    ? [{ l:'Disbursed', v:fmtD(loan.disbursedAt) }]     : []),
-                        ...(loan.creditScore    ? [{ l:'Credit Score', v:String(loan.creditScore) }] : []),
-                      ].map(({ l, v }) => (
-                        <div key={l} className="lcard-detail-row">
-                          <span className="lcard-detail-l">{l}</span>
-                          <span className="lcard-detail-v">{v}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {loan.status==='rejected' && loan.rejectionReason && (
-                      <div style={{ background:'rgba(248,113,113,.08)', border:'1px solid rgba(248,113,113,.2)', borderRadius:10, padding:'12px 14px' }}>
-                        <div style={{ display:'flex', alignItems:'center', gap:7, color:'#fca5a5', fontSize:13, fontWeight:600, marginBottom:4 }}>
-                          <AlertCircle size={13}/> Rejection Reason
-                        </div>
-                        <p style={{ color:'rgba(255,255,255,.6)', fontSize:13, margin:0 }}>{loan.rejectionReason}</p>
-                      </div>
-                    )}
-
-                    {canRepay && (
-                      <button className="nx-subbtn" onClick={() => setRepaying(loan)}
-                        style={{ background:'linear-gradient(135deg,#34d399,#059669)' }}>
-                        <DollarSign size={15}/> Make a Payment
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {filtered.map(loan => (
+            <LoanCard key={loan._id} loan={loan} onRepay={setRepayLoan} />
+          ))}
         </div>
       )}
 
-      {applying && accounts.length>0 && <ApplyModal accounts={accounts} onClose={() => setApplying(false)} onDone={load}/>}
-      {repaying  && <RepayModal loan={repaying} accounts={accounts} onClose={() => setRepaying(null)} onDone={load}/>}
-      <LS/>
-    </div>
-  );
-}
+      {/* Disclaimer */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.06)', borderRadius: 10, padding: '12px 14px', fontSize: 12, color: 'rgba(255,255,255,.3)', lineHeight: 1.6, marginTop: 24 }}>
+        <AlertCircle size={13} color="rgba(255,255,255,.3)" style={{ flexShrink: 0, marginTop: 1 }} />
+        <span>Loans are subject to credit approval. Interest rates vary based on credit profile and loan type. Your credit score is updated with each successful repayment.</span>
+      </div>
 
-function LS() {
-  return (
-    <style>{`
-      *{box-sizing:border-box}
-      .pg{min-height:100vh;background:#0a0f1a;color:#e2e8f0;font-family:'Inter',system-ui,sans-serif;padding:24px 16px}
-      @media(min-width:640px){.pg{padding:32px 28px}}
-      @media(min-width:1024px){.pg{padding:36px 40px}}
-      .hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;gap:12px;flex-wrap:wrap}
-      .ttl{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.5px;margin:0}
-      @media(min-width:640px){.ttl{font-size:26px}}
-      .sub{color:rgba(255,255,255,.4);font-size:13px;margin:3px 0 0}
-      .addbtn{display:inline-flex;align-items:center;gap:7px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#050d1a;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0}
-      .addbtn:disabled{opacity:.5;cursor:not-allowed}
-      .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:24px}
-      @media(min-width:640px){.stats-grid{grid-template-columns:repeat(4,1fr)}}
-      .scard{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:14px}
-      .scard-l{font-size:11px;color:rgba(255,255,255,.4)}
-      .scard-v{font-size:17px;font-weight:800;letter-spacing:-.3px;font-family:monospace;word-break:break-all}
-      .cen{display:flex;align-items:center;justify-content:center;gap:10px;padding:60px;color:rgba(255,255,255,.35);font-size:14px}
-      .empty{display:flex;flex-direction:column;align-items:center;padding:60px 20px;background:rgba(255,255,255,.02);border:1px dashed rgba(255,255,255,.08);border-radius:16px;text-align:center;gap:10px;margin-bottom:24px}
-      .empty p{color:rgba(255,255,255,.35);font-size:14px;margin:0}
-      .loans-list{display:flex;flex-direction:column;gap:12px}
-      .lcard{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden}
-      .lcard-hdr{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:16px 18px;background:transparent;border:none;cursor:pointer;font-family:inherit;text-align:left;transition:background .15s}
-      .lcard-hdr:hover{background:rgba(255,255,255,.03)}
-      .lcard-hdr-left{display:flex;align-items:center;gap:12px;min-width:0;flex:1}
-      .lcard-ico{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-      .lcard-title{font-size:14px;font-weight:700;color:#fff;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      .lcard-meta{font-size:12px;color:rgba(255,255,255,.4)}
-      .lcard-body{padding:16px 18px 18px;border-top:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;gap:14px}
-      .lcard-details{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-      @media(min-width:640px){.lcard-details{grid-template-columns:repeat(3,1fr)}}
-      .lcard-detail-row{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:3px}
-      .lcard-detail-l{font-size:10px;color:rgba(255,255,255,.35)}
-      .lcard-detail-v{font-size:13px;font-weight:700;color:#fff;font-family:monospace;word-break:break-all}
-      .spill{font-size:10px;font-weight:700;padding:3px 9px;border-radius:100px;letter-spacing:.05em;white-space:nowrap}
-      .nx-over{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);z-index:9000;display:flex;align-items:flex-end;justify-content:center;padding:16px}
-      @media(min-width:600px){.nx-over{align-items:center}}
-      .nx-modal{background:#111826;border:1px solid rgba(255,255,255,.1);border-radius:20px 20px 0 0;padding:26px;width:100%;max-height:92vh;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
-      @media(min-width:600px){.nx-modal{border-radius:20px}}
-      .nx-mhdr{display:flex;justify-content:space-between;align-items:center}
-      .nx-mtitle{font-size:17px;font-weight:800;color:#fff;margin:0}
-      .nx-xbtn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.5);cursor:pointer}
-      .nx-fg{display:flex;flex-direction:column;gap:6px}
-      .nx-lbl{font-size:12px;font-weight:600;color:rgba(255,255,255,.6)}
-      .nx-inp{width:100%;background:#1e2940!important;border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:11px 14px;font-size:14px;color:#fff!important;-webkit-text-fill-color:#fff!important;outline:none;font-family:inherit}
-      .nx-inp::placeholder{color:rgba(255,255,255,.28)}
-      .nx-inp:focus{border-color:rgba(245,158,11,.5)}
-      .nx-selwrap{position:relative}
-      .nx-sel{width:100%;background:#1e2940!important;border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:11px 14px;font-size:14px;color:#fff!important;-webkit-text-fill-color:#fff!important;outline:none;font-family:inherit;appearance:none;cursor:pointer}
-      .nx-sel option{background:#1e2940;color:#fff}
-      .nx-sel-ico{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.4);pointer-events:none}
-      .nx-subbtn{display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#050d1a;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
-      .nx-subbtn:disabled{opacity:.5;cursor:not-allowed}
-      .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-      .ltypes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-      @media(min-width:500px){.ltypes{grid-template-columns:repeat(3,1fr)}}
-      .ltype-btn{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px;cursor:pointer;font-family:inherit;transition:all .2s;text-align:left;display:flex;flex-direction:column;gap:3px}
-      .ltype-btn:hover{background:rgba(255,255,255,.06)}
-      .ltype-on{background:rgba(245,158,11,.1)!important;border-color:rgba(245,158,11,.4)!important}
-      .ltype-label{font-size:12px;font-weight:700;color:rgba(255,255,255,.8)}
-      .ltype-meta{font-size:10px;color:rgba(255,255,255,.35)}
-      .ltype-on .ltype-label{color:#f59e0b}
-      .est-box{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.2);border-radius:12px;padding:14px;text-align:center}
-      .est-title{font-size:11px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
-      .est-amount{font-size:26px;font-weight:800;color:#34d399;font-family:monospace;margin-bottom:6px;word-break:break-all}
-      .est-note{font-size:11px;color:rgba(255,255,255,.35);line-height:1.4}
-      .linfo-box{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px}
-      .linfo-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:rgba(255,255,255,.5)}
-      .linfo-row strong{color:#fff;font-family:monospace}
-      @keyframes spin{to{transform:rotate(360deg)}}.nx-spin{animation:spin 1s linear infinite}
-    `}</style>
+      {/* Modals */}
+      {showApply && (
+        <ApplyModal accounts={accounts} onClose={() => setShowApply(false)} onDone={load} />
+      )}
+      {repayLoan && (
+        <RepayModal loan={repayLoan} accounts={accounts} onClose={() => setRepayLoan(null)} onDone={load} />
+      )}
+
+      <style>{`
+        *, *::before, *::after { box-sizing: border-box; }
+        .pg { min-height:100vh; background:#0a0f1a; color:#e2e8f0; font-family:'Inter',system-ui,sans-serif; padding:18px 14px; }
+        @media(min-width:480px)  { .pg { padding:22px 18px; } }
+        @media(min-width:768px)  { .pg { padding:28px 28px; } }
+        @media(min-width:1024px) { .pg { padding:36px 40px; } }
+        .hdr { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:22px; gap:12px; flex-wrap:wrap; }
+        @media(min-width:640px)  { .hdr { align-items:center; margin-bottom:28px; } }
+        .ttl { font-size:20px; font-weight:800; color:#fff; letter-spacing:-.5px; margin:0; }
+        @media(min-width:480px)  { .ttl { font-size:22px; } }
+        @media(min-width:768px)  { .ttl { font-size:26px; } }
+        .sub { color:rgba(255,255,255,.4); font-size:13px; margin:3px 0 0; }
+        .addbtn { display:inline-flex; align-items:center; gap:7px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#050d1a; border:none; border-radius:10px; padding:10px 16px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap; }
+        .nx-actbtn { display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.12); border-radius:9px; padding:9px 14px; font-size:13px; font-weight:600; color:rgba(255,255,255,.6); cursor:pointer; font-family:inherit; }
+        .nx-actbtn:disabled { opacity:.4; cursor:not-allowed; }
+        .nx-over { position:fixed; inset:0; background:rgba(0,0,0,.78); backdrop-filter:blur(6px); z-index:9000; display:flex; align-items:flex-end; justify-content:center; }
+        @media(min-width:600px) { .nx-over { align-items:center; padding:16px; } }
+        .nx-modal { background:#111826; border:1px solid rgba(255,255,255,.1); border-radius:20px 20px 0 0; padding:22px 18px; width:100%; max-height:92vh; overflow-y:auto; display:flex; flex-direction:column; gap:14px; }
+        @media(min-width:600px) { .nx-modal { border-radius:20px; padding:26px; } }
+        .nx-mhdr { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+        .nx-mtitle { font-size:17px; font-weight:800; color:#fff; margin:0; }
+        .nx-xbtn { background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:8px; width:30px; height:30px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,.5); cursor:pointer; flex-shrink:0; }
+        .nx-subbtn { display:flex; align-items:center; justify-content:center; gap:8px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#050d1a; border:none; border-radius:12px; padding:13px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; }
+        .nx-subbtn:disabled { opacity:.5; cursor:not-allowed; }
+        select option { background:#1e2940; color:#fff; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        .nx-spin { animation:spin 1s linear infinite; }
+        ::-webkit-scrollbar { width:5px; height:5px; }
+        ::-webkit-scrollbar-track { background:transparent; }
+        ::-webkit-scrollbar-thumb { background:rgba(255,255,255,.12); border-radius:10px; }
+      `}</style>
+    </div>
   );
 }

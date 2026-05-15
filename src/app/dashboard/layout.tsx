@@ -14,6 +14,7 @@ import {
 import { useAuthStore } from '../store/auth.store';
 import { clearAuthCookies, setAuthCookies } from '../lib/api';
 import api from '../lib/api';
+import PinSetupGate from '../../components/Pinsetupgate';
 
 // ─── Routes that require approved KYC ────────────────────────────────────────
 // Must match KYC_REQUIRED_ROUTES in middleware.ts
@@ -24,7 +25,6 @@ const KYC_REQUIRED_PATHS = [
   '/dashboard/loans',
   '/dashboard/investments',
   '/dashboard/bills',
-  '/dashboard/crypto',
   '/dashboard/cheques',
 ];
 
@@ -37,7 +37,6 @@ const NAV = [
   { href: '/dashboard/loans',        Icon: Building2,       label: 'Loans'        },
   { href: '/dashboard/investments',  Icon: TrendingUp,      label: 'Investments'  },
   { href: '/dashboard/bills',        Icon: BarChart3,       label: 'Bills'        },
-  { href: '/dashboard/crypto',       Icon: Bitcoin,         label: 'Crypto'       },
   { href: '/dashboard/cheques',      Icon: FileText,        label: 'Cheques'      },
   { href: '/dashboard/kyc',          Icon: ShieldCheck,     label: 'KYC'          },
   { href: '/dashboard/settings',     Icon: Settings,        label: 'Settings'     },
@@ -549,9 +548,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Page content — KYCGate wraps children here */}
         <main className="flex-1 p-6 lg:p-[26px] overflow-y-auto">
+          <PinSetupGate>
           <KYCGate pathname={pathname}>
             {children}
           </KYCGate>
+          </PinSetupGate>
         </main>
       </div>
     </div>

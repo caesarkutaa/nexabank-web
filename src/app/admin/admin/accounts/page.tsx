@@ -3,29 +3,28 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Search, Plus, Loader2, AlertCircle, ChevronLeft, ChevronRight,
-  RefreshCw, X, Wallet, ArrowUpRight, ArrowDownLeft, Snowflake,
-  Flame, Trash2, DollarSign, Send, Globe, Building, CheckCircle2,
-  Clock, XCircle, CreditCard, Copy,
+  RefreshCw, X, Wallet, ArrowDownLeft,
+  Snowflake, Flame, Trash2, DollarSign, Send, Globe, Building,
+  CheckCircle2, Copy, CreditCard, Calendar, Clock, ChevronDown,
 } from 'lucide-react';
 import adminApi from '../lib/api';
-import { formatDate } from '../../../lib/utils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Account {
-  _id:             string;
-  accountNumber:   string;
-  routingNumber?:  string;
-  accountType:     string;
-  status:          string;
-  balance:         number;
-  availableBalance:number;
-  pendingBalance:  number;
-  totalDeposited:  number;
-  totalWithdrawn:  number;
-  currency:        string;
-  nickname?:       string;
-  isPrimary:       boolean;
-  createdAt:       string;
+  _id:              string;
+  accountNumber:    string;
+  routingNumber?:   string;
+  accountType:      string;
+  status:           string;
+  balance:          number;
+  availableBalance: number;
+  pendingBalance:   number;
+  totalDeposited:   number;
+  totalWithdrawn:   number;
+  currency:         string;
+  nickname?:        string;
+  isPrimary:        boolean;
+  createdAt:        string;
   userId: {
     _id: string; username: string; email: string;
     firstName: string; lastName: string;
@@ -42,6 +41,7 @@ const inp: React.CSSProperties = {
 };
 const fg = (e: React.FocusEvent<any>) => (e.target.style.borderColor = 'rgba(245,158,11,.5)');
 const br = (e: React.FocusEvent<any>) => (e.target.style.borderColor = 'rgba(255,255,255,.1)');
+
 function Lbl({ t }: { t: string }) {
   return <label style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.45)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{t}</label>;
 }
@@ -53,6 +53,7 @@ function fmtC(n: number, cur = 'USD') {
   catch { return `$${(n ?? 0).toFixed(2)}`; }
 }
 function ini(a?: string, b?: string) { return `${a?.[0] ?? ''}${b?.[0] ?? ''}`.toUpperCase() || 'U'; }
+
 const SC: Record<string, { bg: string; color: string }> = {
   active:    { bg: 'rgba(52,211,153,.12)',  color: '#34d399' },
   frozen:    { bg: 'rgba(96,165,250,.12)',  color: '#60a5fa' },
@@ -60,14 +61,21 @@ const SC: Record<string, { bg: string; color: string }> = {
   pending:   { bg: 'rgba(245,158,11,.12)',  color: '#f59e0b' },
 };
 
-// ─── Copy button ──────────────────────────────────────────────────────────────
+// Status config for transaction status field
+const TX_STATUS = [
+  { value: 'completed',  label: 'Completed',  bg: 'rgba(52,211,153,.12)',  color: '#34d399' },
+  { value: 'processing', label: 'Processing', bg: 'rgba(96,165,250,.12)',  color: '#60a5fa' },
+  { value: 'pending',    label: 'Pending',    bg: 'rgba(245,158,11,.12)',  color: '#f59e0b' },
+  { value: 'failed',     label: 'Failed',     bg: 'rgba(239,68,68,.12)',   color: '#f87171' },
+];
+
+// ─── Copy button ─────────────────────────────────────────────────────────────
 function CopyBtn({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   const copy = (e: React.MouseEvent) => {
     e.stopPropagation();
     navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
+      setCopied(true); setTimeout(() => setCopied(false), 1800);
     });
   };
   return (
@@ -103,45 +111,224 @@ function Confirm({ title, sub, confirmLabel, danger, loading, onConfirm, onClose
   );
 }
 
+// ── Bank list for autocomplete ────────────────────────────────
+const US_EU_BANKS = [
+  'JPMorgan Chase Bank','Bank of America','Wells Fargo Bank','Citibank',
+  'U.S. Bank','Truist Bank','PNC Bank','Goldman Sachs Bank','TD Bank',
+  'Capital One Bank','Ally Bank','Citizens Bank','Fifth Third Bank',
+  'KeyBank','Regions Bank','Huntington National Bank','Discover Bank',
+  'American Express National Bank','BMO Harris Bank','Santander Bank',
+  'M&T Bank','Synchrony Bank','TIAA Bank','Flagstar Bank',
+  'New York Community Bank','Comerica Bank','Zions Bank','Synovus Bank',
+  'Old National Bank','Glacier Bank','First National Bank',
+  'Cross River Bank','Blue Ridge Bank','Customers Bank',
+  'Evolve Bank & Trust','Lead Bank','WebBank',
+  'Navy Federal Credit Union','Pentagon Federal Credit Union',
+  'State Employees Credit Union','Boeing Employees Credit Union',
+  'Deutsche Bank','Commerzbank','DZ Bank','KfW Bank','ING Group',
+  'BNP Paribas','Crédit Agricole','Société Générale','Natixis',
+  'Banco Santander','BBVA','CaixaBank','UniCredit','Intesa Sanpaolo',
+  'ING Bank','Rabobank','ABN AMRO','Erste Group Bank',
+  'Raiffeisen Bank International','KBC Group','Belfius',
+  'Bank of Ireland','AIB Group','Nordea Bank','Svenska Handelsbanken',
+  'SEB Bank','Swedbank','DNB Bank','Danske Bank','Nykredit',
+  'PKO Bank Polski','Bank Pekao','UBS Group','PostFinance',
+  'Barclays','HSBC','Lloyds Banking Group','NatWest Group',
+  'Standard Chartered','Nationwide Building Society','Monzo','Starling Bank',
+  'HSBC Holdings','Citigroup','BNY Mellon','State Street Bank','Northern Trust',
+];
+
+// ── Bank Autocomplete ─────────────────────────────────────────
+function BankAutocomplete({ value, onChange, placeholder }: {
+  value: string; onChange: (v: string) => void; placeholder: string;
+}) {
+  const [open,     setOpen]     = useState(false);
+  const [filtered, setFiltered] = useState<string[]>([]);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!value.trim()) { setFiltered([]); setOpen(false); return; }
+    const q = value.toLowerCase();
+    const matches = US_EU_BANKS.filter(b => b.toLowerCase().includes(q)).slice(0, 8);
+    setFiltered(matches);
+    setOpen(matches.length > 0);
+  }, [value]);
+
+  useEffect(() => {
+    const fn = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
+  }, []);
+
+  return (
+    <div ref={wrapRef} style={{ position: 'relative' }}>
+      <div style={{ position: 'relative' }}>
+        <Search size={12} color="rgba(255,255,255,.3)"
+          style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+        <input
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          onFocus={() => { if (filtered.length) setOpen(true); }}
+          placeholder={placeholder}
+          autoComplete="off"
+          style={{ ...inp, paddingLeft: 28 }}
+          onFocus={fg} onBlur={br}
+        />
+      </div>
+      {open && (
+        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 300, background: '#1a2540', border: '1px solid rgba(255,255,255,.12)', borderRadius: 10, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,.5)' }}>
+          {filtered.map(bank => (
+            <button key={bank} type="button"
+              onMouseDown={e => { e.preventDefault(); onChange(bank); setOpen(false); }}
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 13px', fontSize: 12, color: 'rgba(255,255,255,.8)', background: 'transparent', border: 'none', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,.05)', fontFamily: 'inherit' }}
+              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = 'rgba(245,158,11,.1)')}
+              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'transparent')}>
+              {(() => {
+                const q = value.toLowerCase();
+                const idx = bank.toLowerCase().indexOf(q);
+                if (idx === -1) return bank;
+                return <>{bank.slice(0, idx)}<strong style={{ color: '#f59e0b' }}>{bank.slice(idx, idx + value.length)}</strong>{bank.slice(idx + value.length)}</>;
+              })()}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ─── Date + Time + Status row (shared across all modes) ──────────────────────
+function DateTimeStatus({
+  date, setDate, time, setTime, txStatus, setTxStatus,
+}: {
+  date: string; setDate: (v: string) => void;
+  time: string; setTime: (v: string) => void;
+  txStatus: string; setTxStatus: (v: string) => void;
+}) {
+  const statusCfg = TX_STATUS.find(s => s.value === txStatus) ?? TX_STATUS[0];
+  return (
+    <div style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 12, padding: '14px 14px 12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12 }}>
+        <Clock size={13} color="#f59e0b" />
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '.07em' }}>Transaction Date, Time & Status</span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+        {/* Date */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <Lbl t="Date" />
+          <div style={{ position: 'relative' }}>
+            <Calendar size={12} color="rgba(255,255,255,.3)"
+              style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+            <input
+              type="date"
+              value={date}
+              onChange={e => setDate(e.target.value)}
+              style={{ ...inp, paddingLeft: 28, colorScheme: 'dark', fontSize: 12 }}
+              onFocus={fg} onBlur={br}
+            />
+          </div>
+        </div>
+        {/* Time */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <Lbl t="Time" />
+          <div style={{ position: 'relative' }}>
+            <Clock size={12} color="rgba(255,255,255,.3)"
+              style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+            <input
+              type="time"
+              value={time}
+              onChange={e => setTime(e.target.value)}
+              style={{ ...inp, paddingLeft: 28, colorScheme: 'dark', fontSize: 12 }}
+              onFocus={fg} onBlur={br}
+            />
+          </div>
+        </div>
+        {/* Status */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <Lbl t="Status" />
+          <div style={{ position: 'relative' }}>
+            <select
+              value={txStatus}
+              onChange={e => setTxStatus(e.target.value)}
+              style={{ ...inp, fontSize: 12, appearance: 'none', cursor: 'pointer', paddingRight: 28,
+                color: statusCfg.color, WebkitTextFillColor: statusCfg.color }}
+              onFocus={fg} onBlur={br}
+            >
+              {TX_STATUS.map(s => (
+                <option key={s.value} value={s.value} style={{ color: '#fff', background: '#1a2235' }}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+            <div style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 6, height: 6, borderRadius: '50%', background: statusCfg.color, pointerEvents: 'none' }} />
+          </div>
+        </div>
+      </div>
+      {/* Preview */}
+      <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,.3)' }}>Preview:</span>
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,.6)', fontFamily: 'monospace' }}>
+          {date && time
+            ? new Date(`${date}T${time}`).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
+            : date
+            ? new Date(date).toLocaleDateString('en-US', { dateStyle: 'medium' })
+            : '—'}
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: statusCfg.bg, color: statusCfg.color, fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100 }}>
+          {statusCfg.label}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 // ─── Fund / Transfer Modal ────────────────────────────────────────────────────
 function FundModal({ account, onClose, onDone }: { account: Account; onClose: () => void; onDone: () => void }) {
-  type Mode = 'credit' | 'debit' | 'intrabank' | 'interbank' | 'international';
-  const [mode,         setMode]         = useState<Mode>('credit');
-  const [loading,      setLoading]      = useState(false);
-  const [err,          setErr]          = useState('');
-  const [ok,           setOk]           = useState('');
-  const [amount,       setAmount]       = useState('');
-  // Credit/Debit sender details — makes the tx look like a real transfer
+  type Mode = 'credit' | 'intrabank' | 'interbank' | 'international';
+  const [mode,          setMode]          = useState<Mode>('credit');
+  const [loading,       setLoading]       = useState(false);
+  const [err,           setErr]           = useState('');
+  const [ok,            setOk]            = useState('');
+  const [amount,        setAmount]        = useState('');
+
+  // Date / time / status — shared
+  const today = new Date().toISOString().slice(0, 10);
+  const nowTime = new Date().toTimeString().slice(0, 5);
+  const [txDate,   setTxDate]   = useState(today);
+  const [txTime,   setTxTime]   = useState(nowTime);
+  const [txStatus, setTxStatus] = useState('completed');
+
+  // Credit fields
   const [senderName,   setSenderName]   = useState('');
   const [senderAccNum, setSenderAccNum] = useState('');
-  const [senderBank,   setSenderBank]   = useState('NexaBank');
+  const [senderBank,   setSenderBank]   = useState('');
   const [reason,       setReason]       = useState('');
+
   // Transfer fields
-  const [desc,         setDesc]         = useState('');
-  const [toAcc,        setToAcc]        = useState('');
-  const [recName,      setRecName]      = useState('');
-  const [recLookup,    setRecLookup]    = useState<{ name: string; found: boolean } | null>(null);
-  const [lookupLoading,setLookupLoading]= useState(false);
-  const [routing,      setRouting]      = useState('');
-  const [bank,         setBank]         = useState('');
-  const [swift,        setSwift]        = useState('');
-  const [country,      setCountry]      = useState('');
-  const [cur,          setCur]          = useState('USD');
+  const [desc,     setDesc]     = useState('');
+  const [toAcc,    setToAcc]    = useState('');
+  const [recName,  setRecName]  = useState('');
+  const [recLookup,setRecLookup]= useState<{ name: string; found: boolean } | null>(null);
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [routing,  setRouting]  = useState('');
+  const [bank,     setBank]     = useState('');
+  const [swift,    setSwift]    = useState('');
+  const [country,  setCountry]  = useState('');
+  const [cur,      setCur]      = useState('USD');
   const lookupTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const MODES: { id: Mode; label: string; icon: React.ElementType; color: string }[] = [
     { id: 'credit',        label: 'Deposit',   icon: ArrowDownLeft, color: '#34d399' },
-    { id: 'debit',         label: 'Withdraw',  icon: ArrowUpRight,  color: '#f87171' },
     { id: 'intrabank',     label: 'Intrabank', icon: Building,      color: '#f59e0b' },
     { id: 'interbank',     label: 'ACH',       icon: CreditCard,    color: '#60a5fa' },
     { id: 'international', label: 'Wire',      icon: Globe,         color: '#a78bfa' },
   ];
 
-  // Auto-lookup account holder name when account number changes
   const handleAccNumChange = (val: string) => {
-    setToAcc(val);
-    setRecLookup(null);
-    setRecName('');
+    setToAcc(val); setRecLookup(null); setRecName('');
     if (lookupTimer.current) clearTimeout(lookupTimer.current);
     if (val.trim().length < 6) return;
     lookupTimer.current = setTimeout(async () => {
@@ -152,64 +339,95 @@ function FundModal({ account, onClose, onDone }: { account: Account; onClose: ()
         const match = accs.find((a: any) => a.accountNumber === val.trim());
         if (match) {
           const name = `${match.userId?.firstName ?? ''} ${match.userId?.lastName ?? ''}`.trim();
-          setRecLookup({ name, found: true });
-          setRecName(name); // auto-fill
-        } else {
-          setRecLookup({ name: '', found: false });
-        }
+          setRecLookup({ name, found: true }); setRecName(name);
+        } else { setRecLookup({ name: '', found: false }); }
       } catch { setRecLookup(null); }
       finally { setLookupLoading(false); }
     }, 600);
+  };
+
+  // Build ISO datetime from date + time pickers
+  const buildDateTime = (): string | undefined => {
+    if (!txDate) return undefined;
+    const dt = txTime ? `${txDate}T${txTime}:00` : `${txDate}T00:00:00`;
+    return new Date(dt).toISOString();
   };
 
   const submit = async () => {
     setErr(''); setOk('');
     const amt = parseFloat(amount);
     if (!amt || amt <= 0) return setErr('Enter a valid amount');
+    const processedAt = buildDateTime();
     setLoading(true);
     try {
-      if (mode === 'credit' || mode === 'debit') {
-        if (mode === 'credit' && !senderName.trim()) return setErr('Sender name is required');
+      if (mode === 'credit') {
+        if (!senderName.trim()) return setErr('Sender name is required');
         await adminApi.post('/admin/accounts/credit-debit', {
-          accountId:       account._id,
-          amount:          amt,
-          type:            mode,
-          reason:          reason || (mode === 'credit' ? 'Incoming transfer' : 'Account debit'),
-          // Sender details — stored on the transaction so user sees full transfer info
-          senderName:      mode === 'credit' ? senderName.trim()   : undefined,
-          senderAccount:   mode === 'credit' ? senderAccNum.trim() : undefined,
-          senderBank:      mode === 'credit' ? senderBank.trim()   : undefined,
+          accountId:     account._id,
+          amount:        amt,
+          type:          'credit',
+          reason:        reason || 'Incoming transfer',
+          senderName:    senderName.trim(),
+          senderAccount: senderAccNum.trim() || undefined,
+          senderBank:    senderBank.trim()   || undefined,
+          status:        txStatus,
+          processedAt,
         });
-        setOk(`${mode === 'credit' ? 'Deposited' : 'Withdrawn'} ${fmtC(amt, account.currency)} — visible in user transaction history`);
+        setOk(`Deposited ${fmtC(amt, account.currency)} — visible in user transaction history`);
+
       } else if (mode === 'intrabank') {
         if (!toAcc) return setErr('Recipient account number required');
         await adminApi.post('/admin/accounts/transfer/intrabank', {
-          fromAccountId: account._id, toAccountNumber: toAcc, amount: amt,
-          description: desc || 'Transfer', recipientName: recName,
+          fromAccountId: account._id,
+          toAccountNumber: toAcc,
+          amount:        amt,
+          description:   desc || 'Transfer',
+          recipientName: recName,
+          status:        txStatus,
+          processedAt,
         });
         setOk(`Transferred ${fmtC(amt, account.currency)} to ••••${toAcc.slice(-4)}`);
+
       } else if (mode === 'interbank') {
         if (!toAcc || !routing || !bank || !recName) return setErr('All ACH fields required');
         await adminApi.post('/admin/accounts/transfer/interbank', {
-          fromAccountId: account._id, toAccountNumber: toAcc, toRoutingNumber: routing,
-          toBankName: bank, recipientName: recName, amount: amt, description: desc || 'ACH Transfer',
+          fromAccountId:  account._id,
+          toAccountNumber: toAcc,
+          toRoutingNumber: routing,
+          toBankName:     bank,
+          recipientName:  recName,
+          amount:         amt,
+          description:    desc || 'ACH Transfer',
+          status:         txStatus,
+          processedAt,
         });
-        setOk(`ACH transfer of ${fmtC(amt, account.currency)} initiated (1–2 business days)`);
+        setOk(`ACH transfer of ${fmtC(amt, account.currency)} initiated`);
+
       } else if (mode === 'international') {
         if (!toAcc || !swift || !recName || !bank || !country) return setErr('All wire fields required');
         await adminApi.post('/admin/accounts/transfer/international', {
-          fromAccountId: account._id, recipientName: recName, recipientBank: bank,
-          swiftCode: swift, ibanNumber: toAcc, recipientCountry: country,
-          amount: amt, currency: cur, description: desc || 'International Wire Transfer',
+          fromAccountId:  account._id,
+          recipientName:  recName,
+          recipientBank:  bank,
+          swiftCode:      swift,
+          ibanNumber:     toAcc,
+          recipientCountry: country,
+          amount:         amt,
+          currency:       cur,
+          description:    desc || 'International Wire Transfer',
+          status:         txStatus,
+          processedAt,
         });
-        setOk(`Wire of ${fmtC(amt, cur)} initiated (2–5 business days)`);
+        setOk(`Wire of ${fmtC(amt, cur)} initiated`);
       }
       setTimeout(() => { onDone(); onClose(); }, 2000);
     } catch (e: any) { setErr(e.response?.data?.message || 'Operation failed'); }
     finally { setLoading(false); }
   };
 
-  const btnColor = mode === 'debit' ? '#dc2626' : mode === 'international' ? '#7c3aed' : mode === 'interbank' ? '#2563eb' : '#d97706';
+  const modeColor = {
+    credit: '#34d399', intrabank: '#f59e0b', interbank: '#60a5fa', international: '#a78bfa',
+  }[mode];
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.82)', backdropFilter: 'blur(8px)', zIndex: 9100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
@@ -220,12 +438,14 @@ function FundModal({ account, onClose, onDone }: { account: Account; onClose: ()
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <h3 style={{ fontSize: 17, fontWeight: 800, color: '#fff', margin: '0 0 4px' }}>Fund / Transfer</h3>
-            <p style={{ fontSize: 12, color: 'rgba(255,255,255,.35)', margin: 0 }}>••••{account.accountNumber?.slice(-4)} · {account.userId?.firstName} {account.userId?.lastName} · {fmtC(account.balance, account.currency)}</p>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,.35)', margin: 0 }}>
+              ••••{account.accountNumber?.slice(-4)} · {account.userId?.firstName} {account.userId?.lastName} · {fmtC(account.balance, account.currency)}
+            </p>
           </div>
           <button onClick={onClose} style={{ background: 'rgba(255,255,255,.06)', border: 'none', borderRadius: 8, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.4)', cursor: 'pointer', flexShrink: 0 }}><X size={15} /></button>
         </div>
 
-        {/* Mode tabs — always fully visible, scrollable on small screens */}
+        {/* Mode tabs — no Withdraw */}
         <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2, flexShrink: 0 }}>
           {MODES.map(({ id, label, icon: Icon, color }) => (
             <button key={id} onClick={() => { setMode(id); setErr(''); setOk(''); setRecLookup(null); }}
@@ -239,21 +459,30 @@ function FundModal({ account, onClose, onDone }: { account: Account; onClose: ()
         {err && <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(239,68,68,.09)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 10, padding: '10px 13px' }}><AlertCircle size={13} color="#f87171" /><span style={{ fontSize: 13, color: '#fca5a5' }}>{err}</span></div>}
         {ok  && <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(52,211,153,.09)', border: '1px solid rgba(52,211,153,.2)', borderRadius: 10, padding: '10px 13px' }}><CheckCircle2 size={13} color="#34d399" /><span style={{ fontSize: 13, color: '#6ee7b7' }}>{ok}</span></div>}
 
-        {/* Amount — always shown */}
+        {/* Amount */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
           <Lbl t="Amount" />
-          <input type="number" min="0.01" step="0.01" value={amount} onChange={e => setAmount(e.target.value)}
-            placeholder="0.00" style={{ ...inp, fontSize: 22, fontWeight: 800, fontFamily: 'monospace', letterSpacing: '-1px' }} onFocus={fg} onBlur={br} />
+          <input type="number" min="0.01" step="0.01" value={amount}
+            onChange={e => setAmount(e.target.value)} placeholder="0.00"
+            style={{ ...inp, fontSize: 22, fontWeight: 800, fontFamily: 'monospace', letterSpacing: '-1px' }}
+            onFocus={fg} onBlur={br} />
         </div>
 
-        {/* ── Credit — full sender details, looks like a real incoming transfer ── */}
+        {/* ── Date / Time / Status — shown for ALL modes ── */}
+        <DateTimeStatus
+          date={txDate} setDate={setTxDate}
+          time={txTime} setTime={setTxTime}
+          txStatus={txStatus} setTxStatus={setTxStatus}
+        />
+
+        {/* ── Credit ── */}
         {mode === 'credit' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5, gridColumn: '1/-1' }}>
                 <Lbl t="Sender Full Name *" />
                 <input value={senderName} onChange={e => setSenderName(e.target.value)}
-                  placeholder="e.g. James Whitfield, Acme Corp LLC..." style={inp} onFocus={fg} onBlur={br} />
+                  placeholder="e.g. James Whitfield, Acme Corp LLC…" style={inp} onFocus={fg} onBlur={br} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                 <Lbl t="Sender Account Number" />
@@ -262,34 +491,21 @@ function FundModal({ account, onClose, onDone }: { account: Account; onClose: ()
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                 <Lbl t="Sender Bank" />
-                <input value={senderBank} onChange={e => setSenderBank(e.target.value)}
-                  placeholder="e.g. Chase, Wells Fargo, NexaBank..." style={inp} onFocus={fg} onBlur={br} />
+                <BankAutocomplete value={senderBank} onChange={setSenderBank} placeholder="e.g. Chase, Wells Fargo…" />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5, gridColumn: '1/-1' }}>
                 <Lbl t="Description / Narration" />
                 <input value={reason} onChange={e => setReason(e.target.value)}
-                  placeholder="e.g. Salary for March 2026, Invoice #4421, Loan repayment..." style={inp} onFocus={fg} onBlur={br} />
+                  placeholder="e.g. Salary for March 2026, Invoice #4421…" style={inp} onFocus={fg} onBlur={br} />
               </div>
             </div>
             <div style={{ background: 'rgba(52,211,153,.06)', border: '1px solid rgba(52,211,153,.15)', borderRadius: 9, padding: '10px 13px', fontSize: 11, color: 'rgba(52,211,153,.8)', lineHeight: 1.6 }}>
-              The user will see this exactly as an incoming transfer from <strong style={{ color: '#34d399' }}>{senderName || 'the sender'}</strong> — no mention of admin or NexaBank system.
+              The user will see this as an incoming transfer from <strong style={{ color: '#34d399' }}>{senderName || 'the sender'}</strong> — no mention of admin.
             </div>
           </div>
         )}
 
-        {/* ── Debit — just a description, like a bank charge or withdrawal ── */}
-        {mode === 'debit' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-            <Lbl t="Description / Narration" />
-            <input value={reason} onChange={e => setReason(e.target.value)}
-              placeholder="e.g. Monthly maintenance fee, Returned cheque charge, Loan instalment..." style={inp} onFocus={fg} onBlur={br} />
-            <p style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', margin: 0, lineHeight: 1.5 }}>
-              This appears as a debit in the user's transaction history with this description only.
-            </p>
-          </div>
-        )}
-
-        {/* ── Intrabank — with auto account name lookup ── */}
+        {/* ── Intrabank ── */}
         {mode === 'intrabank' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -297,13 +513,8 @@ function FundModal({ account, onClose, onDone }: { account: Account; onClose: ()
               <div style={{ position: 'relative' }}>
                 <input value={toAcc} onChange={e => handleAccNumChange(e.target.value)}
                   placeholder="Enter full account number" style={inp} onFocus={fg} onBlur={br} />
-                {lookupLoading && (
-                  <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }}>
-                    <Loader2 size={14} color="#f59e0b" style={{ animation: 'spin 1s linear infinite' }} />
-                  </div>
-                )}
+                {lookupLoading && <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }}><Loader2 size={14} color="#f59e0b" style={{ animation: 'spin 1s linear infinite' }} /></div>}
               </div>
-              {/* Account name lookup result */}
               {recLookup && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 9, background: recLookup.found ? 'rgba(52,211,153,.08)' : 'rgba(239,68,68,.08)', border: `1px solid ${recLookup.found ? 'rgba(52,211,153,.2)' : 'rgba(239,68,68,.2)'}` }}>
                   {recLookup.found
@@ -313,14 +524,14 @@ function FundModal({ account, onClose, onDone }: { account: Account; onClose: ()
                 </div>
               )}
             </div>
-            {/* Name is auto-filled but editable */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               <Lbl t="Recipient Name" />
-              <input value={recName} onChange={e => setRecName(e.target.value)} placeholder="Auto-filled from account lookup" style={{ ...inp, color: recLookup?.found ? '#34d399' : '#fff', WebkitTextFillColor: recLookup?.found ? '#34d399' : '#fff' }} onFocus={fg} onBlur={br} />
+              <input value={recName} onChange={e => setRecName(e.target.value)} placeholder="Auto-filled from lookup"
+                style={{ ...inp, color: recLookup?.found ? '#34d399' : '#fff', WebkitTextFillColor: recLookup?.found ? '#34d399' : '#fff' }} onFocus={fg} onBlur={br} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               <Lbl t="Description" />
-              <input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Transfer note..." style={inp} onFocus={fg} onBlur={br} />
+              <input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Transfer note…" style={inp} onFocus={fg} onBlur={br} />
             </div>
           </div>
         )}
@@ -331,9 +542,9 @@ function FundModal({ account, onClose, onDone }: { account: Account; onClose: ()
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}><Lbl t="Account Number" /><input value={toAcc} onChange={e => setToAcc(e.target.value)} placeholder="Account number" style={inp} onFocus={fg} onBlur={br} /></div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}><Lbl t="Routing Number" /><input value={routing} onChange={e => setRouting(e.target.value)} placeholder="9-digit routing" style={inp} onFocus={fg} onBlur={br} /></div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}><Lbl t="Bank Name" /><input value={bank} onChange={e => setBank(e.target.value)} placeholder="Chase, Wells Fargo..." style={inp} onFocus={fg} onBlur={br} /></div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}><Lbl t="Bank Name" /><BankAutocomplete value={bank} onChange={setBank} placeholder="Start typing bank name…" /></div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}><Lbl t="Recipient Name" /><input value={recName} onChange={e => setRecName(e.target.value)} placeholder="Full name" style={inp} onFocus={fg} onBlur={br} /></div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, gridColumn: '1/-1' }}><Lbl t="Description" /><input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Purpose..." style={inp} onFocus={fg} onBlur={br} /></div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, gridColumn: '1/-1' }}><Lbl t="Description" /><input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Purpose…" style={inp} onFocus={fg} onBlur={br} /></div>
             </div>
             <div style={{ fontSize: 11, color: 'rgba(96,165,250,.7)', background: 'rgba(96,165,250,.06)', border: '1px solid rgba(96,165,250,.15)', borderRadius: 9, padding: '9px 12px' }}>
               Fee: $2.50 (≤$1,000) · $5.00 (&gt;$1,000) · Settles in 1–2 business days
@@ -346,7 +557,7 @@ function FundModal({ account, onClose, onDone }: { account: Account; onClose: ()
           <>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}><Lbl t="Recipient Name" /><input value={recName} onChange={e => setRecName(e.target.value)} placeholder="Full name" style={inp} onFocus={fg} onBlur={br} /></div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}><Lbl t="Recipient Bank" /><input value={bank} onChange={e => setBank(e.target.value)} placeholder="Bank name" style={inp} onFocus={fg} onBlur={br} /></div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}><Lbl t="Recipient Bank" /><BankAutocomplete value={bank} onChange={setBank} placeholder="Start typing bank name…" /></div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}><Lbl t="SWIFT / BIC" /><input value={swift} onChange={e => setSwift(e.target.value)} placeholder="CHASUS33" style={inp} onFocus={fg} onBlur={br} /></div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}><Lbl t="IBAN / Account #" /><input value={toAcc} onChange={e => setToAcc(e.target.value)} placeholder="IBAN or account number" style={inp} onFocus={fg} onBlur={br} /></div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}><Lbl t="Country" /><input value={country} onChange={e => setCountry(e.target.value)} placeholder="United Kingdom" style={inp} onFocus={fg} onBlur={br} /></div>
@@ -356,7 +567,7 @@ function FundModal({ account, onClose, onDone }: { account: Account; onClose: ()
                   {['USD','EUR','GBP','JPY','CAD','AUD','CHF','CNY','NGN','GHS'].map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, gridColumn: '1/-1' }}><Lbl t="Description" /><input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Wire purpose..." style={inp} onFocus={fg} onBlur={br} /></div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, gridColumn: '1/-1' }}><Lbl t="Description" /><input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Wire purpose…" style={inp} onFocus={fg} onBlur={br} /></div>
             </div>
             <div style={{ fontSize: 11, color: 'rgba(167,139,250,.7)', background: 'rgba(167,139,250,.06)', border: '1px solid rgba(167,139,250,.15)', borderRadius: 9, padding: '9px 12px' }}>
               Fee: 2% of amount (max $50) · Processes in 2–5 business days
@@ -366,9 +577,9 @@ function FundModal({ account, onClose, onDone }: { account: Account; onClose: ()
 
         {/* Submit */}
         <button onClick={submit} disabled={loading || !!ok}
-          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: `linear-gradient(135deg,${btnColor},${btnColor}bb)`, color: mode === 'debit' || mode === 'international' || mode === 'interbank' ? '#fff' : '#050d1a', border: 'none', borderRadius: 12, padding: '13px', fontSize: 14, fontWeight: 700, cursor: (loading || !!ok) ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: (loading || !!ok) ? .7 : 1, marginTop: 2 }}>
+          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: `linear-gradient(135deg,${modeColor},${modeColor}bb)`, color: mode === 'credit' ? '#050d1a' : '#fff', border: 'none', borderRadius: 12, padding: '13px', fontSize: 14, fontWeight: 700, cursor: (loading || !!ok) ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: (loading || !!ok) ? .7 : 1, marginTop: 2 }}>
           {loading ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={15} />}
-          {mode === 'credit' ? 'Deposit Funds' : mode === 'debit' ? 'Withdraw Funds' : mode === 'intrabank' ? 'Transfer Internally' : mode === 'interbank' ? 'Send ACH Transfer' : 'Send Wire Transfer'}
+          {mode === 'credit' ? 'Deposit Funds' : mode === 'intrabank' ? 'Transfer Internally' : mode === 'interbank' ? 'Send ACH Transfer' : 'Send Wire Transfer'}
         </button>
       </div>
     </div>
@@ -377,46 +588,203 @@ function FundModal({ account, onClose, onDone }: { account: Account; onClose: ()
 
 // ─── Create Account Modal ─────────────────────────────────────────────────────
 function CreateModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
-  const [f, setF] = useState({ userId: '', accountType: 'checking', initialDeposit: '', nickname: '' });
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState('');
-  const u = (k: string, v: string) => setF(p => ({ ...p, [k]: v }));
+  const [accountType,   setAccountType]   = useState('checking');
+  const [initialDeposit,setInitialDeposit]= useState('');
+  const [nickname,      setNickname]      = useState('');
+  const [loading,       setLoading]       = useState(false);
+  const [err,           setErr]           = useState('');
+
+  // User search state
+  const [query,         setQuery]         = useState('');
+  const [searching,     setSearching]     = useState(false);
+  const [results,       setResults]       = useState<any[]>([]);
+  const [selectedUser,  setSelectedUser]  = useState<any | null>(null);
+  const [showResults,   setShowResults]   = useState(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wrapRef     = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const fn = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setShowResults(false);
+    };
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
+  }, []);
+
+  const handleQueryChange = (val: string) => {
+    setQuery(val);
+    setSelectedUser(null);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (!val.trim()) { setResults([]); setShowResults(false); return; }
+    searchTimer.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await adminApi.get('/admin/users', { params: { search: val.trim(), limit: 8 } });
+        const users = (res.data.data ?? res.data).users ?? [];
+        setResults(users);
+        setShowResults(true);
+      } catch { setResults([]); }
+      finally { setSearching(false); }
+    }, 350);
+  };
+
+  const pickUser = (user: any) => {
+    setSelectedUser(user);
+    setQuery(`${user.firstName} ${user.lastName} — @${user.username}`);
+    setShowResults(false);
+    setResults([]);
+  };
 
   const submit = async () => {
     setErr('');
-    if (!f.userId.trim()) return setErr('User ID is required');
+    if (!selectedUser) return setErr('Please search and select a user first');
     setLoading(true);
     try {
-      await adminApi.post('/admin/accounts', { userId: f.userId, accountType: f.accountType, initialDeposit: f.initialDeposit ? parseFloat(f.initialDeposit) : undefined, nickname: f.nickname || undefined });
+      await adminApi.post('/admin/accounts', {
+        userId:         selectedUser._id,
+        accountType,
+        initialDeposit: initialDeposit ? parseFloat(initialDeposit) : undefined,
+        nickname:       nickname || undefined,
+      });
       onDone(); onClose();
-    } catch (e: any) { setErr(e.response?.data?.message || 'Failed'); }
+    } catch (e: any) { setErr(e.response?.data?.message || 'Failed to create account'); }
     finally { setLoading(false); }
   };
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.8)', backdropFilter: 'blur(6px)', zIndex: 9100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
       onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{ background: '#111826', border: '1px solid rgba(255,255,255,.1)', borderRadius: '20px 20px 0 0', padding: '24px 20px 32px', width: '100%', maxWidth: 460, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ background: '#111826', border: '1px solid rgba(255,255,255,.1)', borderRadius: '20px 20px 0 0', padding: '24px 20px 32px', width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+        {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ fontSize: 17, fontWeight: 800, color: '#fff', margin: 0 }}>Create Account</h3>
           <button onClick={onClose} style={{ background: 'rgba(255,255,255,.06)', border: 'none', borderRadius: 8, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.4)', cursor: 'pointer' }}><X size={15} /></button>
         </div>
-        {err && <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(239,68,68,.09)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 10, padding: '10px 13px' }}><AlertCircle size={13} color="#f87171" /><span style={{ fontSize: 13, color: '#fca5a5' }}>{err}</span></div>}
+
+        {err && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(239,68,68,.09)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 10, padding: '10px 13px' }}>
+            <AlertCircle size={13} color="#f87171" /><span style={{ fontSize: 13, color: '#fca5a5' }}>{err}</span>
+          </div>
+        )}
+
+        {/* User search */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <Lbl t="Search User *" />
+          <div ref={wrapRef} style={{ position: 'relative' }}>
+            <div style={{ position: 'relative' }}>
+              <Search size={13} color="rgba(255,255,255,.3)"
+                style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+              {searching && (
+                <Loader2 size={13} color="#f59e0b"
+                  style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)', animation: 'spin 1s linear infinite' }} />
+              )}
+              <input
+                value={query}
+                onChange={e => handleQueryChange(e.target.value)}
+                onFocus={() => { if (results.length) setShowResults(true); }}
+                placeholder="Search by name, email or username…"
+                autoComplete="off"
+                style={{ ...inp, paddingLeft: 32, paddingRight: 32,
+                  borderColor: selectedUser ? 'rgba(52,211,153,.4)' : 'rgba(255,255,255,.1)' }}
+              />
+            </div>
+
+            {/* Results dropdown */}
+            {showResults && results.length > 0 && (
+              <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 400, background: '#111826', border: '1px solid rgba(255,255,255,.12)', borderRadius: 12, overflow: 'hidden', boxShadow: '0 12px 40px rgba(0,0,0,.6)' }}>
+                {results.map(user => (
+                  <button key={user._id} type="button"
+                    onMouseDown={e => { e.preventDefault(); pickUser(user); }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', borderBottom: '1px solid rgba(255,255,255,.05)', textAlign: 'left' }}
+                    onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = 'rgba(245,158,11,.08)')}
+                    onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'transparent')}>
+                    {/* Avatar */}
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg,#f59e0b,#d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: '#050d1a', flexShrink: 0 }}>
+                      {(user.firstName?.[0] ?? '') + (user.lastName?.[0] ?? '')}
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {user.firstName} {user.lastName}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,.38)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <span>@{user.username}</span>
+                        <span>·</span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>{user.email}</span>
+                      </div>
+                    </div>
+                    {/* KYC + status badges */}
+                    <div style={{ marginLeft: 'auto', display: 'flex', gap: 5, flexShrink: 0 }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 100, background: user.kycStatus === 'approved' ? 'rgba(52,211,153,.15)' : 'rgba(245,158,11,.12)', color: user.kycStatus === 'approved' ? '#34d399' : '#f59e0b', textTransform: 'capitalize' }}>
+                        KYC {(user.kycStatus ?? 'unknown').replace(/_/g, ' ')}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {showResults && !searching && results.length === 0 && query.trim() && (
+              <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 400, background: '#111826', border: '1px solid rgba(255,255,255,.1)', borderRadius: 12, padding: '16px', textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,.35)' }}>
+                No users found for "{query}"
+              </div>
+            )}
+          </div>
+
+          {/* Selected user confirmation card */}
+          {selectedUser && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(52,211,153,.07)', border: '1px solid rgba(52,211,153,.2)', borderRadius: 10, padding: '10px 13px' }}>
+              <CheckCircle2 size={15} color="#34d399" style={{ flexShrink: 0 }} />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#34d399' }}>{selectedUser.firstName} {selectedUser.lastName}</div>
+                <div style={{ fontSize: 11, color: 'rgba(52,211,153,.6)' }}>@{selectedUser.username} · {selectedUser.email}</div>
+              </div>
+              <button onClick={() => { setSelectedUser(null); setQuery(''); }}
+                style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'rgba(255,255,255,.3)', cursor: 'pointer', display: 'flex', flexShrink: 0 }}>
+                <X size={14} />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Account details */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5, gridColumn: '1/-1' }}><Lbl t="User ID *" /><input value={f.userId} onChange={e => u('userId', e.target.value)} placeholder="MongoDB ObjectId of the user" style={inp} onFocus={fg} onBlur={br} /></div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}><Lbl t="Account Type" />
-            <select value={f.accountType} onChange={e => u('accountType', e.target.value)} style={{ ...inp, appearance: 'none', cursor: 'pointer' }} onFocus={fg} onBlur={br}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <Lbl t="Account Type" />
+            <select value={accountType} onChange={e => setAccountType(e.target.value)}
+              style={{ ...inp, appearance: 'none', cursor: 'pointer' }} onFocus={fg} onBlur={br}>
               <option value="checking">Checking</option>
               <option value="savings">Savings</option>
               <option value="business">Business</option>
               <option value="investment">Investment</option>
             </select>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}><Lbl t="Initial Deposit ($)" /><input type="number" min="0" value={f.initialDeposit} onChange={e => u('initialDeposit', e.target.value)} placeholder="0.00" style={inp} onFocus={fg} onBlur={br} /></div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5, gridColumn: '1/-1' }}><Lbl t="Nickname (optional)" /><input value={f.nickname} onChange={e => u('nickname', e.target.value)} placeholder="e.g. Main Savings..." style={inp} onFocus={fg} onBlur={br} /></div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <Lbl t="Initial Deposit ($)" />
+            <input type="number" min="0" step="0.01" value={initialDeposit}
+              onChange={e => setInitialDeposit(e.target.value)} placeholder="0.00"
+              style={inp} onFocus={fg} onBlur={br} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5, gridColumn: '1/-1' }}>
+            <Lbl t="Nickname (optional)" />
+            <input value={nickname} onChange={e => setNickname(e.target.value)}
+              placeholder="e.g. Main Savings, Business Account…" style={inp} onFocus={fg} onBlur={br} />
+          </div>
         </div>
-        <button onClick={submit} disabled={loading} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#050d1a', border: 'none', borderRadius: 12, padding: '13px', fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: loading ? .6 : 1 }}>
-          {loading ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <Plus size={15} />}Create Account
+
+        {/* Initial deposit preview */}
+        {initialDeposit && parseFloat(initialDeposit) > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(245,158,11,.07)', border: '1px solid rgba(245,158,11,.18)', borderRadius: 9, padding: '9px 13px', fontSize: 12, color: '#f59e0b' }}>
+            <DollarSign size={13} />
+            Account will be funded with <strong style={{ marginLeft: 3 }}>${parseFloat(initialDeposit).toFixed(2)}</strong> on creation
+          </div>
+        )}
+
+        <button onClick={submit} disabled={loading || !selectedUser}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: selectedUser ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'rgba(255,255,255,.06)', color: selectedUser ? '#050d1a' : 'rgba(255,255,255,.25)', border: 'none', borderRadius: 12, padding: '13px', fontSize: 14, fontWeight: 700, cursor: (loading || !selectedUser) ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: loading ? .6 : 1, transition: 'all .2s' }}>
+          {loading ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <Plus size={15} />}
+          {selectedUser ? `Create Account for ${selectedUser.firstName}` : 'Select a user first'}
         </button>
       </div>
     </div>
@@ -467,7 +835,6 @@ export default function AdminAccountsPage() {
   const handleDelete = async () => {
     if (!deleteAcc) return; setActLoading(true);
     try {
-      // Force-delete regardless of balance — backend now allows it
       await adminApi.delete(`/admin/accounts/${deleteAcc._id}?force=true`);
       showToast('Account deleted'); load(pagination.page);
     } catch (e: any) { showToast(e.response?.data?.message || 'Failed to delete'); }
@@ -476,7 +843,6 @@ export default function AdminAccountsPage() {
 
   if (!mounted) return null;
 
-  // Stats from current page
   const totalBal = accounts.reduce((s, a) => s + (a.balance ?? 0), 0);
   const totalDep = accounts.reduce((s, a) => s + (a.totalDeposited ?? 0), 0);
   const totalWit = accounts.reduce((s, a) => s + (a.totalWithdrawn ?? 0), 0);
@@ -484,7 +850,6 @@ export default function AdminAccountsPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, fontFamily: 'Inter, system-ui, sans-serif' }}>
-      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontSize: 'clamp(18px,2.5vw,24px)', fontWeight: 800, color: '#fff', margin: '0 0 4px', letterSpacing: '-.4px' }}>Accounts</h1>
@@ -500,14 +865,14 @@ export default function AdminAccountsPage() {
         </div>
       </div>
 
-      {/* Filters */}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 200, maxWidth: 400 }}>
           <Search size={14} color="rgba(255,255,255,.25)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           <input value={search} onChange={e => { setSearch(e.target.value); if (deb.current) clearTimeout(deb.current); deb.current = setTimeout(() => load(1, e.target.value, status), 420); }}
             placeholder="Search account number…" style={{ ...inp, paddingLeft: 36 }} onFocus={fg} onBlur={br} />
         </div>
-        <select value={status} onChange={e => { setStatus(e.target.value); load(1, search, e.target.value); }} style={{ ...inp, width: 'auto', minWidth: 150, appearance: 'none', cursor: 'pointer' }} onFocus={fg} onBlur={br}>
+        <select value={status} onChange={e => { setStatus(e.target.value); load(1, search, e.target.value); }}
+          style={{ ...inp, width: 'auto', minWidth: 150, appearance: 'none', cursor: 'pointer' }} onFocus={fg} onBlur={br}>
           <option value="">All statuses</option>
           <option value="active">Active</option>
           <option value="frozen">Frozen</option>
@@ -515,14 +880,13 @@ export default function AdminAccountsPage() {
         </select>
       </div>
 
-      {/* Summary stats */}
       {accounts.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10 }}>
           {[
-            { l: 'Total Balance',   v: fmtC(totalBal), c: '#fff'     },
-            { l: 'Total Deposited', v: fmtC(totalDep), c: '#34d399'  },
-            { l: 'Total Withdrawn', v: fmtC(totalWit), c: '#f87171'  },
-            { l: 'Frozen',          v: String(frozen), c: '#60a5fa'  },
+            { l: 'Total Balance',   v: fmtC(totalBal), c: '#fff'    },
+            { l: 'Total Deposited', v: fmtC(totalDep), c: '#34d399' },
+            { l: 'Total Withdrawn', v: fmtC(totalWit), c: '#f87171' },
+            { l: 'Frozen',          v: String(frozen), c: '#60a5fa' },
           ].map(({ l, v, c }) => (
             <div key={l} style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 12, padding: '12px 14px' }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: c, fontFamily: 'monospace', letterSpacing: '-.3px' }}>{v}</div>
@@ -532,7 +896,6 @@ export default function AdminAccountsPage() {
         </div>
       )}
 
-      {/* Table */}
       <div style={{ background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 18, overflow: 'hidden' }}>
         {loading && accounts.length === 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 280, gap: 10, color: 'rgba(255,255,255,.3)', fontSize: 13 }}>
@@ -548,7 +911,7 @@ export default function AdminAccountsPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,.07)' }}>
-                  {['Account', 'Owner', 'Type', 'Status', 'Balance', 'Deposited', 'Withdrawn', 'Actions'].map(h => (
+                  {['Account','Owner','Type','Status','Balance','Deposited','Withdrawn','Actions'].map(h => (
                     <th key={h} style={{ padding: '12px 14px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.06em', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -563,7 +926,7 @@ export default function AdminAccountsPage() {
                       onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'transparent')}>
                       <td style={{ padding: '12px 14px' }}>
                         <div style={{ display: 'flex', alignItems: 'center' }}>
-                          <span style={{ fontWeight: 700, color: '#fff', fontFamily: 'monospace', fontSize: 12, letterSpacing: '.03em' }}>{acc.accountNumber}</span>
+                          <span style={{ fontWeight: 700, color: '#fff', fontFamily: 'monospace', fontSize: 12 }}>{acc.accountNumber}</span>
                           <CopyBtn text={acc.accountNumber} />
                         </div>
                         <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 1 }}>
@@ -609,47 +972,48 @@ export default function AdminAccountsPage() {
         )}
       </div>
 
-      {/* Pagination */}
       {pagination.pages > 1 && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,.35)' }}>Showing {((pagination.page - 1) * pagination.limit) + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total.toLocaleString()}</span>
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,.35)' }}>
+            Showing {((pagination.page-1)*pagination.limit)+1}–{Math.min(pagination.page*pagination.limit,pagination.total)} of {pagination.total.toLocaleString()}
+          </span>
           <div style={{ display: 'flex', gap: 6 }}>
-            <button onClick={() => load(pagination.page - 1)} disabled={pagination.page <= 1} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 9, padding: '7px 13px', fontSize: 13, fontWeight: 600, color: pagination.page <= 1 ? 'rgba(255,255,255,.2)' : 'rgba(255,255,255,.6)', cursor: pagination.page <= 1 ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}><ChevronLeft size={15} /> Prev</button>
+            <button onClick={() => load(pagination.page-1)} disabled={pagination.page<=1} style={{ display:'inline-flex',alignItems:'center',gap:5,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.08)',borderRadius:9,padding:'7px 13px',fontSize:13,fontWeight:600,color:pagination.page<=1?'rgba(255,255,255,.2)':'rgba(255,255,255,.6)',cursor:pagination.page<=1?'not-allowed':'pointer',fontFamily:'inherit' }}><ChevronLeft size={15}/> Prev</button>
             {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
-              const pg = Math.max(1, Math.min(pagination.pages - 4, pagination.page - 2)) + i;
-              return <button key={pg} onClick={() => load(pg)} style={{ width: 34, height: 34, borderRadius: 9, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, background: pg === pagination.page ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'rgba(255,255,255,.05)', color: pg === pagination.page ? '#050d1a' : 'rgba(255,255,255,.5)' }}>{pg}</button>;
+              const pg = Math.max(1, Math.min(pagination.pages-4, pagination.page-2)) + i;
+              return <button key={pg} onClick={() => load(pg)} style={{ width:34,height:34,borderRadius:9,border:'none',cursor:'pointer',fontFamily:'inherit',fontSize:13,fontWeight:700,background:pg===pagination.page?'linear-gradient(135deg,#f59e0b,#d97706)':'rgba(255,255,255,.05)',color:pg===pagination.page?'#050d1a':'rgba(255,255,255,.5)' }}>{pg}</button>;
             })}
-            <button onClick={() => load(pagination.page + 1)} disabled={pagination.page >= pagination.pages} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 9, padding: '7px 13px', fontSize: 13, fontWeight: 600, color: pagination.page >= pagination.pages ? 'rgba(255,255,255,.2)' : 'rgba(255,255,255,.6)', cursor: pagination.page >= pagination.pages ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>Next <ChevronRight size={15} /></button>
+            <button onClick={() => load(pagination.page+1)} disabled={pagination.page>=pagination.pages} style={{ display:'inline-flex',alignItems:'center',gap:5,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.08)',borderRadius:9,padding:'7px 13px',fontSize:13,fontWeight:600,color:pagination.page>=pagination.pages?'rgba(255,255,255,.2)':'rgba(255,255,255,.6)',cursor:pagination.page>=pagination.pages?'not-allowed':'pointer',fontFamily:'inherit' }}>Next <ChevronRight size={15}/></button>
           </div>
         </div>
       )}
 
-      {fundAcc   && <FundModal account={fundAcc} onClose={() => setFundAcc(null)} onDone={() => load(pagination.page)} />}
+      {fundAcc    && <FundModal account={fundAcc} onClose={() => setFundAcc(null)} onDone={() => load(pagination.page)} />}
       {showCreate && <CreateModal onClose={() => setShowCreate(false)} onDone={() => load(1)} />}
-      {freezeAcc && (
-        <Confirm title={freezeAcc.status === 'frozen' ? 'Unfreeze Account?' : 'Freeze Account?'} sub={`••••${freezeAcc.accountNumber?.slice(-4)} · ${freezeAcc.userId?.firstName} ${freezeAcc.userId?.lastName}`} confirmLabel={freezeAcc.status === 'frozen' ? 'Unfreeze' : 'Freeze Account'} loading={actLoading} onConfirm={handleFreeze} onClose={() => setFreezeAcc(null)}>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', margin: 0, lineHeight: 1.6 }}>{freezeAcc.status === 'frozen' ? 'Account will be restored and user can transact again.' : 'User will not be able to make any transactions from this account.'}</p>
+      {freezeAcc  && (
+        <Confirm title={freezeAcc.status==='frozen'?'Unfreeze Account?':'Freeze Account?'} sub={`••••${freezeAcc.accountNumber?.slice(-4)} · ${freezeAcc.userId?.firstName} ${freezeAcc.userId?.lastName}`} confirmLabel={freezeAcc.status==='frozen'?'Unfreeze':'Freeze Account'} loading={actLoading} onConfirm={handleFreeze} onClose={() => setFreezeAcc(null)}>
+          <p style={{ fontSize:13, color:'rgba(255,255,255,.4)', margin:0, lineHeight:1.6 }}>{freezeAcc.status==='frozen'?'Account will be restored and user can transact again.':'User will not be able to make any transactions from this account.'}</p>
         </Confirm>
       )}
-      {deleteAcc && (
+      {deleteAcc  && (
         <Confirm title="Delete Account?" sub={`••••${deleteAcc.accountNumber?.slice(-4)} · ${deleteAcc.userId?.firstName} ${deleteAcc.userId?.lastName}`} confirmLabel="Delete Permanently" danger loading={actLoading} onConfirm={handleDelete} onClose={() => setDeleteAcc(null)}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
             {deleteAcc.balance > 0 && (
-              <div style={{ background: 'rgba(245,158,11,.08)', border: '1px solid rgba(245,158,11,.25)', borderRadius: 10, padding: '11px 13px' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', marginBottom: 3 }}>⚠️ Account has funds</div>
-                <div style={{ fontSize: 12, color: 'rgba(245,158,11,.8)' }}>This account has a balance of <strong>{fmtC(deleteAcc.balance, deleteAcc.currency)}</strong>. Deleting it will permanently erase these funds. Consider transferring the balance first.</div>
+              <div style={{ background:'rgba(245,158,11,.08)', border:'1px solid rgba(245,158,11,.25)', borderRadius:10, padding:'11px 13px' }}>
+                <div style={{ fontSize:12, fontWeight:700, color:'#f59e0b', marginBottom:3 }}>⚠️ Account has funds</div>
+                <div style={{ fontSize:12, color:'rgba(245,158,11,.8)' }}>Balance of <strong>{fmtC(deleteAcc.balance, deleteAcc.currency)}</strong> will be permanently erased.</div>
               </div>
             )}
-            <div style={{ background: 'rgba(239,68,68,.08)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 10, padding: '11px 13px', fontSize: 12, color: '#fca5a5', lineHeight: 1.6 }}>
-              This action is irreversible. The account and all its transaction history will be permanently deleted.
+            <div style={{ background:'rgba(239,68,68,.08)', border:'1px solid rgba(239,68,68,.2)', borderRadius:10, padding:'11px 13px', fontSize:12, color:'#fca5a5', lineHeight:1.6 }}>
+              This action is irreversible. Account and all transaction history will be permanently deleted.
             </div>
           </div>
         </Confirm>
       )}
 
-      {toast && <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#111826', border: '1px solid rgba(255,255,255,.12)', borderRadius: 12, padding: '12px 20px', fontSize: 13, fontWeight: 600, color: '#34d399', whiteSpace: 'nowrap', boxShadow: '0 8px 30px rgba(0,0,0,.5)', zIndex: 9999 }}>✓ {toast}</div>}
+      {toast && <div style={{ position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', background:'#111826', border:'1px solid rgba(255,255,255,.12)', borderRadius:12, padding:'12px 20px', fontSize:13, fontWeight:600, color:'#34d399', whiteSpace:'nowrap', boxShadow:'0 8px 30px rgba(0,0,0,.5)', zIndex:9999 }}>✓ {toast}</div>}
 
-      <style>{`*, *::before, *::after{box-sizing:border-box;}@keyframes spin{to{transform:rotate(360deg);}}select option{background:#1a2235;color:#fff;}`}</style>
+      <style>{`*, *::before, *::after{box-sizing:border-box;} @keyframes spin{to{transform:rotate(360deg);}} select option{background:#1a2235;color:#fff;}`}</style>
     </div>
   );
 }

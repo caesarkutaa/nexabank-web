@@ -158,7 +158,7 @@ function CreditModal({ user, onClose, onDone }: { user: AdminUserRecord; onClose
 
 // ─── Create User Modal ────────────────────────────────────────────────────────
 function CreateUserModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
-  const [f, setF] = useState({ username: '', email: '', password: '', firstName: '', lastName: '', phoneNumber: '', role: 'user', skipEmailVerification: false });
+  const [f, setF] = useState({ username: '', email: '', password: '', firstName: '', lastName: '', phoneNumber: '', role: 'user', skipEmailVerification: false, skipKyc: false });
   const [loading,      setLoading]      = useState(false);
   const [err,          setErr]          = useState('');
   const [showPassword, setShowPassword] = useState(false); // ← eye toggle
@@ -243,10 +243,17 @@ function CreateUserModal({ onClose, onDone }: { onClose: () => void; onDone: () 
               <option value="super_admin">Super Admin</option>
             </select>
           </div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 1 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer', padding: '10px 13px', background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10, width: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer', padding: '9px 13px', background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10 }}>
               <input type="checkbox" checked={f.skipEmailVerification} onChange={e => upd('skipEmailVerification', e.target.checked)} style={{ width: 14, height: 14, accentColor: '#f59e0b', cursor: 'pointer' }} />
               <span style={{ fontSize: 12, color: 'rgba(255,255,255,.55)', fontWeight: 600 }}>Skip email verification</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer', padding: '9px 13px', background: f.skipKyc ? 'rgba(52,211,153,.06)' : 'rgba(255,255,255,.03)', border: `1px solid ${f.skipKyc ? 'rgba(52,211,153,.2)' : 'rgba(255,255,255,.08)'}`, borderRadius: 10, transition: 'all .15s' }}>
+              <input type="checkbox" checked={f.skipKyc} onChange={e => upd('skipKyc', e.target.checked)} style={{ width: 14, height: 14, accentColor: '#34d399', cursor: 'pointer' }} />
+              <div>
+                <span style={{ fontSize: 12, color: f.skipKyc ? '#34d399' : 'rgba(255,255,255,.55)', fontWeight: 600, display: 'block' }}>Auto-approve KYC</span>
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', display: 'block', marginTop: 1 }}>User gets full access instantly</span>
+              </div>
             </label>
           </div>
         </div>

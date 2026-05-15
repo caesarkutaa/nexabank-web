@@ -627,24 +627,7 @@ export default function SettingsPage() {
                 <ChevronRight size={16} color="rgba(255,255,255,.3)" />
               </button>
 
-              {/* 2FA */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 12, padding: '14px 16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: profile?.twoFactorEnabled ? 'rgba(52,211,153,.1)' : 'rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Smartphone size={16} color={profile?.twoFactorEnabled ? '#34d399' : 'rgba(255,255,255,.35)'} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Two-Factor Authentication</div>
-                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>
-                      {profile?.twoFactorEnabled ? 'Enabled — your account is protected' : 'Disabled — enable for extra security'}
-                    </div>
-                  </div>
-                </div>
-                <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 100, background: profile?.twoFactorEnabled ? 'rgba(52,211,153,.12)' : 'rgba(255,255,255,.06)', color: profile?.twoFactorEnabled ? '#34d399' : 'rgba(255,255,255,.35)' }}>
-                  {profile?.twoFactorEnabled ? 'ON' : 'OFF'}
-                </span>
-              </div>
-
+              
               {/* Security PIN */}
               <button onClick={() => setShowPinModal(true)}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 12, padding: '14px 16px', cursor: 'pointer', fontFamily: 'inherit', transition: 'background .15s', width: '100%' }}
@@ -702,10 +685,7 @@ export default function SettingsPage() {
           <Section title="Account Info" icon={CreditCard}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
               {[
-                { label: 'Member Since',    value: profile?.createdAt  ? formatDate(profile.createdAt)  : '—' },
-                { label: 'Last Login',      value: profile?.lastLoginAt ? formatDate(profile.lastLoginAt) : '—' },
                 { label: 'Account Status',  value: profile?.status ?? '—' },
-                { label: 'Account Role',    value: (profile?.role ?? '—') },
               ].map(({ label, value }) => (
                 <div key={label} style={{ background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.06)', borderRadius: 10, padding: '12px 14px' }}>
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', marginBottom: 4 }}>{label}</div>

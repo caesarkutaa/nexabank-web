@@ -2,47 +2,41 @@
 
 /**
  * PageGuard
- * Wrap any user-facing page with this component.
- * If the admin has turned off visibility for that page key, the user
- * is redirected to /dashboard automatically.
+ * Redirects users away from pages that the admin has turned off.
  *
- * Usage:
- *   // In app/(user)/crypto/page.tsx
- *   import PageGuard from '@/components/PageGuard';
+ * Usage — wrap your page content:
+ *   <PageGuard pageKey="crypto">
+ *     <CryptoContent />
+ *   </PageGuard>
  *
- *   export default function CryptoPage() {
- *     return (
- *       <PageGuard pageKey="crypto">
- *         <YourActualPageContent />
- *       </PageGuard>
- *     );
- *   }
+ * The pageKey must match the `key` field in the SiteConfig pages array,
+ * e.g. 'crypto', 'investments', 'loans', 'cheque', 'kyc', etc.
  */
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSiteConfig } from '../app/hooks/Usesiteconfig';
 
-interface PageGuardProps {
+interface Props {
   pageKey: string;
   children: React.ReactNode;
   redirectTo?: string;
 }
 
-export default function PageGuard({ pageKey, children, redirectTo = '/dashboard' }: PageGuardProps) {
+export default function PageGuard({ pageKey, children, redirectTo = '/dashboard' }: Props) {
   const { config, loading, isPageVisible } = useSiteConfig();
   const router = useRouter();
 
   useEffect(() => {
-    // Wait for config to load before deciding
     if (loading || !config) return;
     if (!isPageVisible(pageKey)) {
       router.replace(redirectTo);
     }
   }, [config, loading, pageKey, redirectTo, router]);
 
-  // While loading or if page is hidden, render nothing (avoid flash)
-  if (loading || (config && !isPageVisible(pageKey))) return null;
+  // Show nothing while loading config or if page is hidden
+  if (loading) return null;
+  if (config && !isPageVisible(pageKey)) return null;
 
   return <>{children}</>;
 }

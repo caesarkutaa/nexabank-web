@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from 'sonner';
-import SiteFooter from '../components/Sitefooter';
+import PinSetupGate from '../components/Pinsetupgate';
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' });
 
@@ -31,7 +31,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             },
           }} 
         />
-        <SiteFooter/>
       </body>
     </html>
   );

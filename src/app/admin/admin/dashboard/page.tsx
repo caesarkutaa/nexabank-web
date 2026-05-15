@@ -355,16 +355,16 @@ export default function AdminDashboardPage() {
           <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Quick Navigation</div>
           <div className="quick-grid">
             {[
-              { href: '/admin/users',        Icon: Users,       label: 'Manage Users',     color: '#f59e0b', bg: 'rgba(245,158,11,.12)' },
-              { href: '/admin/kyc',          Icon: ShieldCheck, label: 'Review KYC',       color: '#34d399', bg: 'rgba(52,211,153,.12)'  },
-              { href: '/admin/loans',        Icon: Building2,   label: 'Loan Review',      color: '#a78bfa', bg: 'rgba(167,139,250,.12)' },
-              { href: '/admin/cheques',      Icon: FileText,    label: 'Cheque Review',    color: '#60a5fa', bg: 'rgba(96,165,250,.12)'  },
-              { href: '/admin/transactions', Icon: Receipt,     label: 'Transactions',     color: '#f87171', bg: 'rgba(239,68,68,.12)'   },
-              { href: '/admin/accounts',     Icon: Wallet,      label: 'Accounts',         color: '#34d399', bg: 'rgba(52,211,153,.12)'  },
-              { href: '/admin/investments',  Icon: TrendingUp,  label: 'Investments',      color: '#a78bfa', bg: 'rgba(167,139,250,.12)' },
-              { href: '/admin/crypto',       Icon: Bitcoin,     label: 'Crypto Addresses', color: '#f59e0b', bg: 'rgba(245,158,11,.12)'  },
-              { href: '/admin/otp-config',   Icon: BarChart3,   label: 'OTP Config',       color: '#60a5fa', bg: 'rgba(96,165,250,.12)'  },
-              { href: '/admin/logs',         Icon: Activity,    label: 'Audit Logs',       color: '#94a3b8', bg: 'rgba(148,163,184,.1)'  },
+              { href: '/admin/admin/users',        Icon: Users,       label: 'Manage Users',     color: '#f59e0b', bg: 'rgba(245,158,11,.12)' },
+              { href: '/admin/admin/kyc',          Icon: ShieldCheck, label: 'Review KYC',       color: '#34d399', bg: 'rgba(52,211,153,.12)'  },
+              { href: '/admin/admin/loans',        Icon: Building2,   label: 'Loan Review',      color: '#a78bfa', bg: 'rgba(167,139,250,.12)' },
+              { href: '/admin/admin/cheques',      Icon: FileText,    label: 'Cheque Review',    color: '#60a5fa', bg: 'rgba(96,165,250,.12)'  },
+              { href: '/admin/admin/transactions', Icon: Receipt,     label: 'Transactions',     color: '#f87171', bg: 'rgba(239,68,68,.12)'   },
+              { href: '/admin/admin/accounts',     Icon: Wallet,      label: 'Accounts',         color: '#34d399', bg: 'rgba(52,211,153,.12)'  },
+              { href: '/admin/admin/investments',  Icon: TrendingUp,  label: 'Investments',      color: '#a78bfa', bg: 'rgba(167,139,250,.12)' },
+              { href: '/admin/admin/crypto',       Icon: Bitcoin,     label: 'Crypto Addresses', color: '#f59e0b', bg: 'rgba(245,158,11,.12)'  },
+              { href: '/admin/admin/otp-config',   Icon: BarChart3,   label: 'OTP Config',       color: '#60a5fa', bg: 'rgba(96,165,250,.12)'  },
+              { href: '/admin/admin/logs',         Icon: Activity,    label: 'Audit Logs',       color: '#94a3b8', bg: 'rgba(148,163,184,.1)'  },
             ].map(({ href, Icon, label, color, bg }) => (
               <Link key={href} href={href}
                 style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 12, padding: '11px 13px', textDecoration: 'none', transition: 'all .15s' }}
