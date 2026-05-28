@@ -170,11 +170,11 @@ function BankAutocomplete({ value, onChange, placeholder }: {
         <input
           value={value}
           onChange={e => onChange(e.target.value)}
-          onFocus={() => { if (filtered.length) setOpen(true); }}
           placeholder={placeholder}
           autoComplete="off"
           style={{ ...inp, paddingLeft: 28 }}
-          onFocus={fg} onBlur={br}
+          onFocus={e => { fg(e); if (filtered.length) setOpen(true); }}
+          onBlur={br}
         />
       </div>
       {open && (

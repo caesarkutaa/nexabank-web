@@ -435,7 +435,7 @@ function LoanCard({ loan, onRepay }: { loan: Loan; onRepay: (l: Loan) => void })
   const [expanded, setExpanded] = useState(false);
   const cfg = STATUS_CFG[loan.status] ?? STATUS_CFG.pending;
   const { Icon: SIcon, bg, color, label } = cfg;
-  const loanTypeCfg = LOAN_TYPES.find(t => t.value === loan.type) ??
+  const loanTypeCfg = LOAN_TYPES.find(t => t.value === loan.loanType) ??
     LOAN_TYPES.find(t => t.value === loan.loanType);
   const canRepay = loan.status === 'active' && (loan.outstandingBalance ?? 0) > 0;
 
