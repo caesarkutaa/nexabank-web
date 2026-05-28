@@ -488,12 +488,12 @@ export default function AdminInvestmentsPage() {
           { l:'Filled',         v:filledCount,      c:'#34d399', Icon:CheckCircle2 },
           { l:'Failed/Rejected',v:failedCount,      c:'#f87171', Icon:XCircle      },
           { l:'Total Volume',   v:fmt(volume),      c:'#60a5fa', Icon:DollarSign,mono:true },
-        ] as const).map(({ l,v,c,Icon,mono })=>(
+       ] as const).map(({ l,v,c,Icon,...rest })=>{ const mono = 'mono' in rest; return (
           <div key={l} style={{ background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.07)',borderRadius:14,padding:'14px 16px' }}>
             <div style={{ display:'flex',alignItems:'center',gap:6,marginBottom:8 }}><Icon size={13} color={c}/><span style={{ fontSize:11,color:'rgba(255,255,255,.4)' }}>{l}</span></div>
             <div style={{ fontSize:'clamp(16px,2vw,22px)',fontWeight:800,color:c,fontFamily:(mono as any)?'monospace':'inherit' }}>{typeof v==='number'?v.toLocaleString():v}</div>
           </div>
-        ))}
+       );})}
       </div>
 
       {/* Pending alert */}

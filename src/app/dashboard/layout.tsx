@@ -106,7 +106,7 @@ function KYCGate({ children, pathname }: { children: React.ReactNode; pathname: 
       // Always write fresh value — this is what middleware reads on next nav
       document.cookie = `nexabank_kyc_status=${status};path=/;max-age=${7 * 86400};samesite=strict`;
       // Keep Zustand in sync so userboard banner and sidebar lock icons update instantly
-      updateUser({ kycStatus: status });
+      updateUser({ kycStatus: status as any });
     } catch {
       setKycStatus('not_started');
     } finally {

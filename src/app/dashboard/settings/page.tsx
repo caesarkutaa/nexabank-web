@@ -542,13 +542,11 @@ export default function SettingsPage() {
               <Field label="Last Name">
                 <Inp value={lastName} onChange={setLastName} placeholder="Doe" />
               </Field>
-              <Field label="Username">
-                <Inp value={profile?.username ?? ''} onChange={() => {}} disabled
-                  hint="Username cannot be changed" />
+              <Field label="Username" hint="Username cannot be changed">
+                <Inp value={profile?.username ?? ''} onChange={() => {}} disabled />
               </Field>
-              <Field label="Email Address">
-                <Inp value={profile?.email ?? ''} onChange={() => {}} disabled
-                  hint="Contact support to change email" />
+              <Field label="Email Address" hint="Contact support to change email">
+                <Inp value={profile?.email ?? ''} onChange={() => {}} disabled />
               </Field>
               <Field label="Phone Number">
                 <Inp value={phone} onChange={setPhone} placeholder="+1 555 000 0000" type="tel" />
@@ -595,8 +593,8 @@ export default function SettingsPage() {
               <Field label="ZIP Code">
                 <Inp value={zip} onChange={setZip} placeholder="10001" />
               </Field>
-              <Field label="Country">
-                <Inp value={profile?.country ?? 'US'} onChange={() => {}} disabled hint="Contact support to update country" />
+             <Field label="Country" hint="Contact support to update country">
+                <Inp value={profile?.country ?? 'US'} onChange={() => {}} disabled />
               </Field>
             </div>
           </Section>
