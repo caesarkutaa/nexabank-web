@@ -31,25 +31,58 @@ const CHART_BARS = [40, 65, 45, 80, 55, 90, 70, 95, 60, 85];
 
 const FAQS = [
   { q: 'Is this bank FDIC insured?',            a: 'Yes. Your deposits are insured up to $250,000 per depositor, per ownership category.'                          },
-  { q: 'How long does account opening take?',   a: 'Most accounts are opened in under 5 minutes. Register, verify your email, complete KYC, and you\'re ready.'   },
+  { q: 'How long does account opening take?',   a: "Most accounts are opened in under 5 minutes. Register, verify your email, complete KYC, and you're ready."    },
   { q: 'What are the transfer fees?',           a: 'Intrabank transfers are always free. ACH costs $2.50. International wires are 2% capped at $50.'               },
   { q: 'Can I invest in stocks?',               a: 'Yes. We integrate with Alpaca Markets, giving you access to all US-listed equities directly from the dashboard.' },
   { q: 'How do virtual cards work?',            a: 'Virtual cards are generated instantly and linked to your account. Set limits, freeze, or delete anytime.'       },
 ];
 
+// ── Footer columns: [column title, [[label, href], ...]][] ────
+const FOOTER_LINKS: [string, [string, string][]][] = [
+  ['Products', [
+    ['Checking Account', '/register'],
+    ['Savings Account',  '/register'],
+    ['Virtual Cards',    '/dashboard/cards'],
+    ['Investments',      '/dashboard/investments'],
+    ['Loans',            '/dashboard/loans'],
+    ['Crypto',           '/dashboard/crypto'],
+  ]],
+  ['Company', [
+    ['About Us',  '/aboutus'],
+    ['Careers',   '/careers'],
+    ['Press',     '/press'],
+    ['Blog',      '/blog'],
+    ['Investors', '/investors'],
+    ['Partners',  '/partners'],
+  ]],
+  ['Support', [
+    ['Help Center', '/help'],
+    ['Contact Us',  '/contact'],
+    ['Security',    '/security'],
+    ['Status',      '/status'],
+    ['Community',   '/community'],
+    ['API Docs',    '/docs'],
+  ]],
+  ['Legal', [
+    ['Privacy Policy',   '/privacy'],
+    ['Terms of Service', '/terms'],
+    ['Cookie Policy',    '/cookies'],
+    ['FDIC Notice',      '/fdic'],
+    ['Disclosures',      '/disclosures'],
+  ]],
+];
+
 export default function LandingPage() {
   const { config } = useSiteConfig();
 
-  // Branding values — fall back to NexaBank if config not loaded yet
   const BASE      = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ?? 'http://localhost:3001';
-  const bankName  = config?.bankName   || 'NexaBank';
+  const bankName  = config?.bankName    || 'NexaBank';
   const tagline   = config?.bankTagline || 'Banking Built for the Modern Era';
-  const logoUrl   = config?.logoUrl    ? `${BASE}${config.logoUrl}` : null;
-  const fdicText  = config?.fdicNotice || 'Deposits insured up to $250,000 · NMLS #2024001';
+  const logoUrl   = config?.logoUrl     ? `${BASE}${config.logoUrl}` : null;
   const copyright = config?.copyrightText || `© ${new Date().getFullYear()} ${bankName}, N.A. · Member FDIC · Equal Housing Lender`;
 
   const FEATURES = [
-    { Icon: Zap,        title: 'Instant Transfers',   color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  desc: `Move money in seconds — intrabank, ACH, or international wire.`                      },
+    { Icon: Zap,        title: 'Instant Transfers',   color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  desc: 'Move money in seconds — intrabank, ACH, or international wire.'                       },
     { Icon: Shield,     title: 'Bank-Grade Security', color: '#3b82f6', bg: 'rgba(59,130,246,0.12)',  desc: 'AES-256 encryption, 2FA, biometric PIN, and real-time fraud monitoring.'              },
     { Icon: TrendingUp, title: 'Stock Investments',   color: '#10b981', bg: 'rgba(16,185,129,0.12)',  desc: 'Buy and sell US equities directly from your banking dashboard.'                       },
     { Icon: Globe,      title: 'International Wires', color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)', desc: 'Send funds globally via SWIFT. Competitive exchange rates with transparent fees.'      },
@@ -108,6 +141,16 @@ export default function LandingPage() {
         .anim-2{ animation: fade-up .8s .12s ease both; }
         .anim-3{ animation: fade-up .8s .24s ease both; }
         .anim-4{ animation: fade-up .8s .36s ease both; }
+        .footer-link {
+          display: block;
+          font-size: 13px;
+          margin-bottom: 10px;
+          color: rgba(255,255,255,0.35);
+          font-weight: 300;
+          text-decoration: none;
+          transition: color 0.15s;
+        }
+        .footer-link:hover { color: rgba(255,255,255,0.7); }
       `}</style>
 
       {/* Atmospheric bg */}
@@ -123,9 +166,8 @@ export default function LandingPage() {
         style={{ padding: scrolled ? '13px 0' : '20px 0', background: scrolled ? 'rgba(6,8,16,0.94)' : 'transparent', backdropFilter: scrolled ? 'blur(24px)' : 'none', borderBottom: scrolled ? '1px solid rgba(245,158,11,0.1)' : 'none' }}>
         <div className="max-w-[1200px] mx-auto px-8 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            {/* Logo image if set, otherwise letter mark */}
             {logoUrl ? (
-              <img src={logoUrl} alt={bankName} style={{ height: 36, width: 'auto', objectFit: 'contain' }}
+              <img src={logoUrl} alt={bankName} style={{ height:36, width:'auto', objectFit:'contain' }}
                 onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
             ) : (
               <div style={{ width:36, height:36, borderRadius:10, background:'linear-gradient(135deg,#f59e0b,#d97706)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, fontWeight:900, color:'#060810', boxShadow:'0 0 18px rgba(245,158,11,0.28)' }}>
@@ -162,7 +204,6 @@ export default function LandingPage() {
 
           <h1 className="anim-2 font-extrabold text-white mb-5"
             style={{ fontSize:'clamp(38px,5vw,60px)', letterSpacing:'-2px', lineHeight:1.05 }}>
-            {/* Split tagline: last word gets shimmer */}
             {tagline.split(' ').slice(0, -2).join(' ')}{' '}
             <span className="shimmer-gold">{tagline.split(' ').slice(-2).join(' ')}</span>
           </h1>
@@ -395,10 +436,13 @@ export default function LandingPage() {
       <footer className="relative z-10 pt-16 pb-9 px-8" style={{ background:'#040509', borderTop:'1px solid rgba(245,158,11,0.08)' }}>
         <div className="max-w-[1200px] mx-auto">
           <div className="flex gap-20 mb-12 flex-wrap">
+
+            {/* Brand blurb */}
             <div className="flex-shrink-0" style={{ width:240 }}>
               <Link href="/" className="flex items-center gap-2.5 mb-4">
                 {logoUrl ? (
-                  <img src={logoUrl} alt={bankName} style={{ height:34, width:'auto', objectFit:'contain' }} onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
+                  <img src={logoUrl} alt={bankName} style={{ height:34, width:'auto', objectFit:'contain' }}
+                    onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
                 ) : (
                   <div style={{ width:34, height:34, borderRadius:9, background:'linear-gradient(135deg,#f59e0b,#d97706)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, fontWeight:900, color:'#040509' }}>
                     {bankName.charAt(0).toUpperCase()}
@@ -410,22 +454,26 @@ export default function LandingPage() {
                 Banking for the modern era. Secure, fast, and built for you.
               </p>
             </div>
+
+            {/* Link columns */}
             <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-8">
-              {[
-                ['Products', ['Checking Account','Savings Account','Virtual Cards','Investments','Loans','Crypto']],
-                ['Company',  ['About Us','Careers','Press','Blog','Investors','Partners']],
-                ['Support',  ['Help Center','Contact Us','Security','Status','Community','API Docs']],
-                ['Legal',    ['Privacy Policy','Terms of Service','Cookie Policy','FDIC Notice','Disclosures']],
-              ].map(([title,links]: any) => (
+              {FOOTER_LINKS.map(([title, links]) => (
                 <div key={title}>
-                  <div className="text-[11px] font-bold text-white/80 uppercase mb-4" style={{ letterSpacing:'0.1em' }}>{title}</div>
-                  {(links as string[]).map((l: string) => (
-                    <a key={l} href="" className="block text-[13px] mb-2.5 transition-colors hover:text-white/70" style={{ color:'rgba(255,255,255,0.35)', fontWeight:300 }}>{l}</a>
+                  <div className="text-[11px] font-bold text-white/80 uppercase mb-4" style={{ letterSpacing:'0.1em' }}>
+                    {title}
+                  </div>
+                  {links.map(([label, href]) => (
+                    <Link key={label} href={href} className="footer-link">
+                      {label}
+                    </Link>
                   ))}
                 </div>
               ))}
             </div>
+
           </div>
+
+          {/* Bottom legal */}
           <div className="flex flex-col gap-2 pt-7" style={{ borderTop:'1px solid rgba(255,255,255,0.05)' }}>
             <p className="text-[11px] leading-relaxed" style={{ color:'rgba(255,255,255,0.22)', fontWeight:300 }}>{copyright}</p>
             <p className="text-[11px] leading-relaxed" style={{ color:'rgba(255,255,255,0.22)', fontWeight:300 }}>
@@ -434,6 +482,7 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
     </div>
-  );   
+  );
 }
