@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,36 +6,13 @@
 
 @layer base {
   :root {
-    --background:             0 0% 100%;
-    --foreground:             222.2 84% 4.9%;
-    --card:                   0 0% 100%;
-    --card-foreground:        222.2 84% 4.9%;
-    --popover:                0 0% 100%;
-    --popover-foreground:     222.2 84% 4.9%;
-    --primary:                221.2 83.2% 53.3%;
-    --primary-foreground:     210 40% 98%;
-    --secondary:              210 40% 96.1%;
-    --secondary-foreground:   222.2 47.4% 11.2%;
-    --muted:                  210 40% 96.1%;
-    --muted-foreground:       215.4 16.3% 46.9%;
-    --accent:                 210 40% 96.1%;
-    --accent-foreground:      222.2 47.4% 11.2%;
-    --destructive:            0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border:                 214.3 31.8% 91.4%;
-    --input:                  214.3 31.8% 91.4%;
-    --ring:                   221.2 83.2% 53.3%;
-    --radius:                 0.5rem;
-  }
-
-  .dark {
     --background:             222.2 84% 4.9%;
     --foreground:             210 40% 98%;
     --card:                   222.2 84% 4.9%;
     --card-foreground:        210 40% 98%;
     --popover:                222.2 84% 4.9%;
     --popover-foreground:     210 40% 98%;
-    --primary:                217.2 91.2% 59.8%;
+    --primary:                38 92% 50%;
     --primary-foreground:     222.2 47.4% 11.2%;
     --secondary:              217.2 32.6% 17.5%;
     --secondary-foreground:   210 40% 98%;
@@ -48,79 +25,127 @@
     --border:                 217.2 32.6% 17.5%;
     --input:                  217.2 32.6% 17.5%;
     --ring:                   224.3 76.3% 48%;
+    --radius:                 0.5rem;
+  }
+
+  /*
+    ═══════════════════════════════════════════════════════════
+    THE FOUC & LAYOUT SHIFT FIX — CSS ONLY, ZERO JAVASCRIPT
+    ═══════════════════════════════════════════════════════════
+
+    Why CSS works and JS doesn't:
+    - CSS is render-blocking: browser will NOT paint any pixel
+      until globals.css is fully parsed
+    - JS runs AFTER the first paint — too late
+    - So CSS is the only reliable way to set the initial dark bg
+
+    Why the text was jumping left:
+    - When a scrollbar appears it takes ~15px from the content
+    - scrollbar-gutter:stable reserves that space always
+    - overflow-y:scroll forces the scrollbar to always exist
+    - Together they prevent any layout shift
+    ═══════════════════════════════════════════════════════════
+  */
+
+  html {
+    /* Dark background — applied render-blocking, zero flash */
+    background: #050d1a;
+    color-scheme: dark;
+
+    /* Layout shift fix — scrollbar space always reserved */
+    scrollbar-gutter: stable;
+    overflow-y: scroll;
+
+    scroll-behavior: smooth;
+    height: 100%;
+  }
+
+  body {
+    background: #050d1a;
+    color: #e2e8f0;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    line-height: 1.5;
+    /* Prevent horizontal scroll causing layout shift */
+    overflow-x: hidden;
   }
 
   * {
     @apply border-border;
+    box-sizing: border-box;
   }
 
-  body {
-    @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', system-ui, sans-serif;
-    font-feature-settings: "rlig" 1, "calt" 1;
-    -moz-osx-font-smoothing: grayscale;
-    line-height: 1.5;
+  ::selection {
+    background: rgba(245, 158, 11, 0.28);
+    color: #ffffff;
   }
 
+  :focus-visible {
+    outline: 2px solid rgba(245, 158, 11, 0.65);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Thin dark scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  /* Typography */
   h1, h2, h3, h4, h5, h6 {
-    font-weight: 600;
-    line-height: 1.25;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #ffffff;
   }
-
   a       { color: inherit; text-decoration: none; }
-  button  { cursor: pointer; }
-
-  img, svg {
-    display: block;
-    max-width: 100%;
-  }
-
-  input, textarea, select {
-    font-family: inherit;
-  }
+  button  { cursor: pointer; font-family: inherit; }
+  input, textarea, select { font-family: inherit; }
+  img, svg { display: block; max-width: 100%; }
 }
 
+/* ── Utilities ─────────────────────────────────────────────── */
 @layer utilities {
-  .text-balance    { text-wrap: balance; }
-
-  .nexabank-gradient {
-    background: linear-gradient(135deg, #0a2342 0%, #1e40af 50%, #0a2342 100%);
-  }
-
-  .gold-gradient {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  }
-
-  .card-hover {
-    @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5;
-  }
-
-  .glass-card {
-    @apply bg-white/10 backdrop-blur-md border border-white/20;
-    -webkit-backdrop-filter: blur(12px);
-  }
-
-  .nexabank-card {
-    @apply bg-white rounded-2xl border border-border shadow-sm;
-  }
-
   .scrollbar-hide {
     -ms-overflow-style: none;
-    scrollbar-width:    none;
+    scrollbar-width: none;
   }
   .scrollbar-hide::-webkit-scrollbar { display: none; }
+
+  .font-mono-nums {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .gold-text {
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
 }
 
-@keyframes fadeIn  { from { opacity: 0; }                          to { opacity: 1; }         }
-@keyframes slideUp { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-@keyframes slideIn { from { transform: translateX(-12px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+/* ── Keyframes ─────────────────────────────────────────────── */
+@keyframes spin     { to { transform: rotate(360deg); } }
+@keyframes shimmer  { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+@keyframes fadeIn   { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp  { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes slideIn  { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
+@keyframes dd-pop   { from { opacity: 0; transform: translateY(-4px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes pulse    { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.6; } }
 
-.animate-fade-in  { animation: fadeIn  0.5s ease-in-out; }
-.animate-slide-up { animation: slideUp 0.3s ease-out;    }
-.animate-slide-in { animation: slideIn 0.3s ease-out;    }
-.animate-shimmer  {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
+/* Animation helpers */
+.animate-spin     { animation: spin     1s    linear      infinite; }
+.animate-shimmer  { animation: shimmer  1.5s  ease-in-out infinite; background-size: 200% 100%; }
+.animate-fade-in  { animation: fadeIn   0.4s  ease        both; }
+.animate-slide-up { animation: slideUp  0.35s ease        both; }
+.animate-slide-in { animation: slideIn  0.35s ease        both; }
+.animate-dd-pop   { animation: dd-pop   0.14s ease        both; }
+.animate-pulse-ring { animation: pulse  2s    ease-in-out infinite; }
