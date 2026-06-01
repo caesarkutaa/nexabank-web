@@ -194,18 +194,18 @@ export default function AdminDashboardPage() {
       <div className="grid-4">
         <StatCard label="Total Users"       value={fmtNum(d.users.total)}
           sub={`${d.users.active} active · ${d.users.suspended} suspended`}
-          icon={Users} iconColor="#f59e0b" iconBg="rgba(245,158,11,.12)" href="/admin/users" />
+          icon={Users} iconColor="#f59e0b" iconBg="rgba(245,158,11,.12)" href="/admin/admin/users" />
         <StatCard label="Transactions"      value={fmtNum(d.transactions.total)}
           sub={`${d.transactions.pending} pending`}
-          icon={Receipt} iconColor="#60a5fa" iconBg="rgba(96,165,250,.12)" href="/admin/transactions"
+          icon={Receipt} iconColor="#60a5fa" iconBg="rgba(96,165,250,.12)" href="/admin/admin/transactions"
           alert={d.transactions.pending > 0} />
         <StatCard label="KYC Submissions"   value={d.kyc.pending + d.kyc.approved + d.kyc.rejected}
           sub={`${d.kyc.pending} pending · ${d.kyc.approved} approved`}
-          icon={ShieldCheck} iconColor="#34d399" iconBg="rgba(52,211,153,.12)" href="/admin/kyc"
+          icon={ShieldCheck} iconColor="#34d399" iconBg="rgba(52,211,153,.12)" href="/admin/admin/kyc"
           alert={d.kyc.pending > 0} />
         <StatCard label="Loan Applications" value={fmtNum(d.loans.total)}
           sub={`${d.loans.pending} under review`}
-          icon={Building2} iconColor="#a78bfa" iconBg="rgba(167,139,250,.12)" href="/admin/loans"
+          icon={Building2} iconColor="#a78bfa" iconBg="rgba(167,139,250,.12)" href="/admin/admin/loans"
           alert={d.loans.pending > 0} />
       </div>
 
@@ -257,7 +257,7 @@ export default function AdminDashboardPage() {
       <div style={{ background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 18, overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
           <h2 style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0 }}>Recent Transactions</h2>
-          <Link href="/admin/transactions" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#f59e0b', textDecoration: 'none' }}>
+          <Link href="/admin/admin/transactions" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#f59e0b', textDecoration: 'none' }}>
             View all <ArrowRight size={13} />
           </Link>
         </div>
@@ -323,7 +323,7 @@ export default function AdminDashboardPage() {
         <div style={{ background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 18, overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
             <h2 style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0 }}>Recently Registered</h2>
-            <Link href="/admin/users" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#f59e0b', textDecoration: 'none' }}>View all <ArrowRight size={13} /></Link>
+            <Link href="/admin/admin/users" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#f59e0b', textDecoration: 'none' }}>View all <ArrowRight size={13} /></Link>
           </div>
           {d.recentUsers.length === 0 ? (
             <div style={{ padding: '24px', textAlign: 'center', color: 'rgba(255,255,255,.25)', fontSize: 13 }}>No users yet</div>
