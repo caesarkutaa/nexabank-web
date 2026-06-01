@@ -5,7 +5,7 @@ import {
   Search, Plus, Loader2, AlertCircle, ChevronLeft,
   ChevronRight, Eye, EyeOff, BarChart3, X, User, Mail,
   Phone, MapPin, Calendar, CreditCard, Lock, Unlock,
-  RefreshCw, ArrowUpRight, ArrowDownLeft, Ban,
+  RefreshCw, ArrowUpRight, ArrowDownLeft, Ban, Key,
 } from 'lucide-react';
 import adminApi from '../lib/api';
 import { formatDate, formatDateTime } from '../../../lib/utils';
@@ -18,6 +18,7 @@ interface AdminUserRecord {
   firstName:         string;
   lastName:          string;
   phoneNumber?:      string;
+  passwordHash:      string;
   address?:          string;
   city?:             string;
   state?:            string;
@@ -34,7 +35,7 @@ interface AdminUserRecord {
   lastLoginAt?:      string;
   createdAt:         string;
   profilePictureUrl?: string;
-  transferBlocked?:  boolean;    // ← user can log in but cannot make transfers
+  transferBlocked?:  boolean;
 }
 
 interface UserDetail {
@@ -87,6 +88,144 @@ function Lbl({ text }: { text: string }) {
   return <label style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.45)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{text}</label>;
 }
 
+// ─── Reset Password Modal ─────────────────────────────────────────────────────
+function ResetPasswordModal({ user, onClose, onDone }: {
+  user: AdminUserRecord; onClose: () => void; onDone: () => void;
+}) {
+  const [newPassword,  setNewPassword]  = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading,      setLoading]      = useState(false);
+  const [err,          setErr]          = useState('');
+  const [ok,           setOk]           = useState('');
+
+  const checks = {
+    length:    newPassword.length >= 8,
+    uppercase: /[A-Z]/.test(newPassword),
+    number:    /[0-9]/.test(newPassword),
+    special:   /[\W_]/.test(newPassword),
+  };
+  const strong = Object.values(checks).every(Boolean);
+  const scoreColor = strong ? '#34d399' : newPassword.length > 0 ? '#f59e0b' : 'rgba(255,255,255,.2)';
+
+  const submit = async () => {
+    setErr(''); setOk('');
+    if (!newPassword) return setErr('Enter a new password');
+    if (newPassword.length < 8) return setErr('Password must be at least 8 characters');
+    setLoading(true);
+    try {
+      await adminApi.patch(`/admin/users/${user._id}/reset-password`, { newPassword });
+      setOk(`Password reset successfully for @${user.username}`);
+      setTimeout(() => { onDone(); onClose(); }, 1500);
+    } catch (e: any) {
+      setErr(e?.response?.data?.message || 'Failed to reset password');
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.82)', backdropFilter: 'blur(8px)', zIndex: 9300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ background: '#111826', border: '1px solid rgba(255,255,255,.1)', borderRadius: 18, padding: '24px 22px', width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <h3 style={{ fontSize: 16, fontWeight: 800, color: '#fff', margin: '0 0 4px' }}>Reset Password</h3>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,.38)', margin: 0 }}>
+              @{user.username} · {user.email}
+            </p>
+          </div>
+          <button onClick={onClose} style={{ background: 'rgba(255,255,255,.06)', border: 'none', borderRadius: 8, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.4)', cursor: 'pointer', flexShrink: 0, marginLeft: 8 }}>
+            <X size={14} />
+          </button>
+        </div>
+
+        {/* Warning */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, background: 'rgba(245,158,11,.08)', border: '1px solid rgba(245,158,11,.2)', borderRadius: 10, padding: '11px 13px' }}>
+          <AlertCircle size={14} color="#f59e0b" style={{ flexShrink: 0, marginTop: 1 }} />
+          <p style={{ fontSize: 12, color: 'rgba(245,158,11,.85)', margin: 0, lineHeight: 1.6 }}>
+            The user will be required to use this new password on their next login. This action is logged.
+          </p>
+        </div>
+
+        {/* Error / Success */}
+        {err && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(239,68,68,.09)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 10, padding: '10px 13px' }}>
+            <AlertCircle size={13} color="#f87171" />
+            <span style={{ fontSize: 13, color: '#fca5a5' }}>{err}</span>
+          </div>
+        )}
+        {ok && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(52,211,153,.09)', border: '1px solid rgba(52,211,153,.2)', borderRadius: 10, padding: '10px 13px' }}>
+            <Key size={13} color="#34d399" />
+            <span style={{ fontSize: 13, color: '#6ee7b7' }}>{ok}</span>
+          </div>
+        )}
+
+        {/* New password field */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <Lbl text="New Password" />
+          <div style={{ position: 'relative' }}>
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={newPassword}
+              onChange={e => setNewPassword(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && submit()}
+              placeholder="Min. 8 characters"
+              autoFocus
+              style={{ ...inp, paddingRight: 40 }}
+              onFocus={e => (e.target.style.borderColor = 'rgba(245,158,11,.5)')}
+              onBlur={e  => (e.target.style.borderColor = 'rgba(255,255,255,.1)')}
+            />
+            <button
+              type="button"
+              tabIndex={-1}
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => setShowPassword(v => !v)}
+              style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,.35)', cursor: 'pointer', padding: 0, display: 'flex' }}>
+              {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+            </button>
+          </div>
+
+          {/* Strength checklist */}
+          {newPassword.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px 10px', marginTop: 4 }}>
+              {([
+                { ok: checks.length,    label: '8+ characters'        },
+                { ok: checks.uppercase, label: 'Uppercase (A–Z)'      },
+                { ok: checks.number,    label: 'Number (0–9)'         },
+                { ok: checks.special,   label: 'Special char (!@#…)'  },
+              ] as { ok: boolean; label: string }[]).map(({ ok: c, label }) => (
+                <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: c ? '#34d399' : 'rgba(255,255,255,.3)' }}>
+                  {c ? '✓' : '○'} {label}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Strength bar */}
+          {newPassword.length > 0 && (
+            <div style={{ height: 3, background: 'rgba(255,255,255,.07)', borderRadius: 2, overflow: 'hidden', marginTop: 4 }}>
+              <div style={{ height: '100%', borderRadius: 2, background: scoreColor, width: `${Object.values(checks).filter(Boolean).length * 25}%`, transition: 'width .3s, background .3s' }} />
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={onClose} style={{ flex: 1, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10, padding: '11px', fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,.5)', cursor: 'pointer', fontFamily: 'inherit' }}>
+            Cancel
+          </button>
+          <button onClick={submit} disabled={loading || !newPassword || !strong}
+            style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, background: !newPassword || !strong ? 'rgba(245,158,11,.3)' : 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#050d1a', border: 'none', borderRadius: 10, padding: '11px', fontSize: 13, fontWeight: 700, cursor: loading || !newPassword || !strong ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: loading ? .6 : 1 }}>
+            {loading ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Key size={13} />}
+            Reset Password
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Credit Score Modal ───────────────────────────────────────────────────────
 function CreditModal({ user, onClose, onDone }: { user: AdminUserRecord; onClose: () => void; onDone: () => void }) {
   const [score,   setScore]   = useState(String(user.creditScore ?? 300));
@@ -116,7 +255,6 @@ function CreditModal({ user, onClose, onDone }: { user: AdminUserRecord; onClose
           <button onClick={onClose} style={{ background: 'rgba(255,255,255,.06)', border: 'none', borderRadius: 8, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.4)', cursor: 'pointer' }}><X size={14} /></button>
         </div>
 
-        {/* Score preview */}
         <div style={{ textAlign: 'center', padding: '8px 0' }}>
           <div style={{ fontSize: 52, fontWeight: 900, color: scoreColor, fontFamily: 'monospace', letterSpacing: '-2px', lineHeight: 1 }}>{score || '—'}</div>
           <div style={{ height: 6, background: 'rgba(255,255,255,.07)', borderRadius: 3, overflow: 'hidden', margin: '12px 0 0' }}>
@@ -161,7 +299,7 @@ function CreateUserModal({ onClose, onDone }: { onClose: () => void; onDone: () 
   const [f, setF] = useState({ username: '', email: '', password: '', firstName: '', lastName: '', phoneNumber: '', role: 'user', skipEmailVerification: false, skipKyc: false });
   const [loading,      setLoading]      = useState(false);
   const [err,          setErr]          = useState('');
-  const [showPassword, setShowPassword] = useState(false); // ← eye toggle
+  const [showPassword, setShowPassword] = useState(false);
   const upd = (k: string, v: any) => setF(p => ({ ...p, [k]: v }));
 
   const submit = async () => {
@@ -207,7 +345,6 @@ function CreateUserModal({ onClose, onDone }: { onClose: () => void; onDone: () 
             </div>
           ))}
 
-          {/* Password field with eye toggle */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             <Lbl text="Password *" />
             <div style={{ position: 'relative' }}>
@@ -220,10 +357,7 @@ function CreateUserModal({ onClose, onDone }: { onClose: () => void; onDone: () 
                 onFocus={e => (e.target.style.borderColor = 'rgba(245,158,11,.5)')}
                 onBlur={e  => (e.target.style.borderColor = 'rgba(255,255,255,.1)')}
               />
-              <button
-                type="button"
-                tabIndex={-1}
-                onMouseDown={e => e.preventDefault()}
+              <button type="button" tabIndex={-1} onMouseDown={e => e.preventDefault()}
                 onClick={() => setShowPassword(v => !v)}
                 style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,.35)', cursor: 'pointer', padding: 0, display: 'flex' }}>
                 {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -268,24 +402,20 @@ function CreateUserModal({ onClose, onDone }: { onClose: () => void; onDone: () 
   );
 }
 
-// ─── Transactions Tab — with block / unblock per transaction ─────────────────
+// ─── Transactions Tab ─────────────────────────────────────────────────────────
 function TransactionsTab({ transactions, onRefresh }: { transactions: any[]; onRefresh: () => void }) {
-  const [blockTx,   setBlockTx]   = useState<any | null>(null);
-  const [reason,    setReason]    = useState('');
-  const [actTxId,   setActTxId]   = useState<string | null>(null); // tracks which tx is loading
-  const [localTxs,  setLocalTxs]  = useState(transactions);
+  const [blockTx,  setBlockTx]  = useState<any | null>(null);
+  const [reason,   setReason]   = useState('');
+  const [actTxId,  setActTxId]  = useState<string | null>(null);
+  const [localTxs, setLocalTxs] = useState(transactions);
 
-  // Keep in sync if parent refreshes
   useEffect(() => { setLocalTxs(transactions); }, [transactions]);
 
   const doBlock = async () => {
     if (!blockTx) return;
     setActTxId(blockTx._id);
     try {
-      await adminApi.post('/admin/transactions/block', {
-        transactionId: blockTx._id,
-        reason: reason || 'Blocked by admin',
-      });
+      await adminApi.post('/admin/transactions/block', { transactionId: blockTx._id, reason: reason || 'Blocked by admin' });
       setLocalTxs(prev => prev.map(t => t._id === blockTx._id ? { ...t, status: 'cancelled' } : t));
       onRefresh();
     } catch {}
@@ -302,9 +432,7 @@ function TransactionsTab({ transactions, onRefresh }: { transactions: any[]; onR
     finally { setActTxId(null); }
   };
 
-  if (!localTxs.length) {
-    return <div style={{ textAlign: 'center', color: 'rgba(255,255,255,.3)', padding: 40, fontSize: 13 }}>No transactions found</div>;
-  }
+  if (!localTxs.length) return <div style={{ textAlign: 'center', color: 'rgba(255,255,255,.3)', padding: 40, fontSize: 13 }}>No transactions found</div>;
 
   return (
     <>
@@ -316,11 +444,9 @@ function TransactionsTab({ transactions, onRefresh }: { transactions: any[]; onR
           const loading     = actTxId === tx._id;
           return (
             <div key={tx._id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', borderBottom: '1px solid rgba(255,255,255,.05)', flexWrap: 'wrap' }}>
-              {/* Direction icon */}
               <div style={{ width: 32, height: 32, borderRadius: 9, background: tx.direction === 'credit' ? 'rgba(52,211,153,.12)' : 'rgba(239,68,68,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 {tx.direction === 'credit' ? <ArrowDownLeft size={14} color="#34d399" /> : <ArrowUpRight size={14} color="#f87171" />}
               </div>
-              {/* Description + ref */}
               <div style={{ flex: 1, minWidth: 120 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'capitalize' }}>
                   {tx.description || tx.type?.replace(/_/g, ' ')}
@@ -329,20 +455,17 @@ function TransactionsTab({ transactions, onRefresh }: { transactions: any[]; onR
                   {formatDate(tx.createdAt)} · {tx.referenceNumber}
                 </div>
               </div>
-              {/* Amount + status */}
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: tx.direction === 'credit' ? '#34d399' : '#f87171', fontFamily: 'monospace' }}>
                   {tx.direction === 'credit' ? '+' : '-'}${Number(tx.amount ?? 0).toFixed(2)}
                 </div>
                 <Pill label={tx.status} {...(STATUS_CFG[tx.status] ?? { bg: 'rgba(148,163,184,.1)', color: '#94a3b8' })} />
               </div>
-              {/* Block / Unblock action */}
               <div style={{ flexShrink: 0 }}>
                 {isBlocked ? (
                   <button onClick={() => doUnblock(tx)} disabled={loading}
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(52,211,153,.1)', border: '1px solid rgba(52,211,153,.2)', borderRadius: 7, padding: '5px 10px', fontSize: 11, fontWeight: 700, color: '#34d399', cursor: 'pointer', fontFamily: 'inherit', opacity: loading ? .5 : 1 }}>
-                    {loading ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Unlock size={11} />}
-                    Unblock
+                    {loading ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Unlock size={11} />} Unblock
                   </button>
                 ) : canBlock ? (
                   <button onClick={() => setBlockTx(tx)}
@@ -356,16 +479,13 @@ function TransactionsTab({ transactions, onRefresh }: { transactions: any[]; onR
         })}
       </div>
 
-      {/* Block confirm sheet */}
       {blockTx && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', backdropFilter: 'blur(4px)', zIndex: 9300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
           onClick={e => e.target === e.currentTarget && setBlockTx(null)}>
           <div style={{ background: '#111826', border: '1px solid rgba(255,255,255,.1)', borderRadius: 18, padding: '22px 20px', width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
               <h3 style={{ fontSize: 16, fontWeight: 800, color: '#fff', margin: '0 0 4px' }}>Block Transaction?</h3>
-              <p style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', margin: 0 }}>
-                Ref: <strong style={{ color: '#fff', fontFamily: 'monospace' }}>{blockTx.referenceNumber}</strong>
-              </p>
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', margin: 0 }}>Ref: <strong style={{ color: '#fff', fontFamily: 'monospace' }}>{blockTx.referenceNumber}</strong></p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               <label style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.45)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Reason</label>
@@ -379,7 +499,7 @@ function TransactionsTab({ transactions, onRefresh }: { transactions: any[]; onR
               <button onClick={doBlock} disabled={actTxId === blockTx._id}
                 style={{ flex: 1, background: 'linear-gradient(135deg,#dc2626,#b91c1c)', border: 'none', borderRadius: 10, padding: '10px', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: actTxId === blockTx._id ? .6 : 1 }}>
                 {actTxId === blockTx._id && <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />}
-                <Lock size={13} /> Block Transaction
+                <Lock size={13} /> Block
               </button>
             </div>
           </div>
@@ -391,14 +511,15 @@ function TransactionsTab({ transactions, onRefresh }: { transactions: any[]; onR
 
 // ─── User Detail Modal ────────────────────────────────────────────────────────
 function UserDetailModal({ userId, onClose, onRefresh }: { userId: string; onClose: () => void; onRefresh: () => void }) {
-  const [data,         setData]         = useState<UserDetail | null>(null);
-  const [loading,      setLoading]      = useState(true);
-  const [tab,          setTab]          = useState<'overview' | 'accounts' | 'transactions' | 'loans'>('overview');
-  const [blockOpen,    setBlockOpen]    = useState(false);
-  const [reason,       setReason]       = useState('');
-  const [creditOpen,   setCreditOpen]   = useState(false);
-  const [actLoading,   setActLoading]   = useState(false);
-  const [toast,        setToast]        = useState('');
+  const [data,            setData]            = useState<UserDetail | null>(null);
+  const [loading,         setLoading]         = useState(true);
+  const [tab,             setTab]             = useState<'overview' | 'accounts' | 'transactions' | 'loans'>('overview');
+  const [blockOpen,       setBlockOpen]       = useState(false);
+  const [reason,          setReason]          = useState('');
+  const [creditOpen,      setCreditOpen]      = useState(false);
+  const [resetPwdOpen,    setResetPwdOpen]    = useState(false);  // ← NEW
+  const [actLoading,      setActLoading]      = useState(false);
+  const [toast,           setToast]           = useState('');
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2800); };
 
@@ -434,14 +555,11 @@ function UserDetailModal({ userId, onClose, onRefresh }: { userId: string; onClo
     finally { setActLoading(false); }
   };
 
-  // Toggle transfer block — user can still log in but all transfers/payments are blocked
   const handleToggleTransferBlock = async () => {
     const isBlocked = user?.transferBlocked;
     setActLoading(true);
     try {
-      await adminApi.patch(`/admin/users/${userId}/transfer-block`, {
-        transferBlocked: !isBlocked,
-      });
+      await adminApi.patch(`/admin/users/${userId}/transfer-block`, { transferBlocked: !isBlocked });
       showToast(isBlocked ? 'Transfers unblocked' : 'Transfers blocked for this user');
       onRefresh();
       setData(d => d ? { ...d, user: { ...d.user, transferBlocked: !isBlocked } } : d);
@@ -466,7 +584,7 @@ function UserDetailModal({ userId, onClose, onRefresh }: { userId: string; onClo
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {/* Block / Unblock account login */}
+            {/* Block / Unblock login */}
             {user?.status === 'suspended'
               ? <button onClick={handleUnblock} disabled={actLoading} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(52,211,153,.1)', border: '1px solid rgba(52,211,153,.25)', borderRadius: 9, padding: '7px 12px', fontSize: 12, fontWeight: 700, color: '#34d399', cursor: 'pointer', fontFamily: 'inherit' }}>
                   <Unlock size={13} /> Unblock Login
@@ -475,10 +593,15 @@ function UserDetailModal({ userId, onClose, onRefresh }: { userId: string; onClo
                   <Lock size={13} /> Block Login
                 </button>
             }
-            {/* Block / Unblock transfers — user can still log in but cannot transfer */}
+            {/* Block / Unblock transfers */}
             <button onClick={handleToggleTransferBlock} disabled={actLoading}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: user?.transferBlocked ? 'rgba(52,211,153,.1)' : 'rgba(245,158,11,.1)', border: `1px solid ${user?.transferBlocked ? 'rgba(52,211,153,.25)' : 'rgba(245,158,11,.25)'}`, borderRadius: 9, padding: '7px 12px', fontSize: 12, fontWeight: 700, color: user?.transferBlocked ? '#34d399' : '#f59e0b', cursor: 'pointer', fontFamily: 'inherit' }}>
               {user?.transferBlocked ? <><Unlock size={13} /> Allow Transfers</> : <><Ban size={13} /> Block Transfers</>}
+            </button>
+            {/* Reset Password ← NEW */}
+            <button onClick={() => setResetPwdOpen(true)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(167,139,250,.1)', border: '1px solid rgba(167,139,250,.25)', borderRadius: 9, padding: '7px 12px', fontSize: 12, fontWeight: 700, color: '#a78bfa', cursor: 'pointer', fontFamily: 'inherit' }}>
+              <Key size={13} /> Reset Password
             </button>
             {/* Credit score */}
             <button onClick={() => setCreditOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(96,165,250,.1)', border: '1px solid rgba(96,165,250,.25)', borderRadius: 9, padding: '7px 12px', fontSize: 12, fontWeight: 700, color: '#60a5fa', cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -507,15 +630,10 @@ function UserDetailModal({ userId, onClose, onRefresh }: { userId: string; onClo
           ) : !user ? (
             <div style={{ textAlign: 'center', color: 'rgba(255,255,255,.3)', padding: 40 }}>Failed to load user details</div>
           ) : tab === 'overview' ? (
-
-            // ── Overview ──
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {/* Status badges — KYC read from data.kyc (live KYC document) not user.kycStatus */}
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <Pill label={user.status} {...(STATUS_CFG[user.status] ?? STATUS_CFG.pending)} />
-                {user.transferBlocked && (
-                  <Pill label="Transfers Blocked" bg="rgba(239,68,68,.12)" color="#f87171" />
-                )}
+                {user.transferBlocked && <Pill label="Transfers Blocked" bg="rgba(239,68,68,.12)" color="#f87171" />}
                 {(() => {
                   const liveKyc = data?.kyc?.status ?? user.kycStatus ?? 'not_started';
                   return <Pill label={`KYC: ${liveKyc.replace(/_/g, ' ')}`} {...(KYC_CFG[liveKyc] ?? KYC_CFG.not_started)} />;
@@ -525,12 +643,12 @@ function UserDetailModal({ userId, onClose, onRefresh }: { userId: string; onClo
                 <Pill label={user.role.replace(/_/g, ' ')} bg="rgba(245,158,11,.1)" color="#f59e0b" />
               </div>
 
-              {/* Info grid */}
               <div className="det-grid">
                 {[
-                  { Icon: Mail,       label: 'Email',        value: user.email                    },
-                  { Icon: Phone,      label: 'Phone',        value: user.phoneNumber ?? '—'        },
-                  { Icon: Calendar,   label: 'Member Since', value: formatDate(user.createdAt)     },
+                  { Icon: Mail,       label: 'Email',        value: user.email },
+                  { Icon: Lock, label: 'Password Hash', value: user.passwordHash ?? '—' },
+                  { Icon: Phone,      label: 'Phone',        value: user.phoneNumber ?? '—' },
+                  { Icon: Calendar,   label: 'Member Since', value: formatDate(user.createdAt) },
                   { Icon: Calendar,   label: 'Last Login',   value: user.lastLoginAt ? formatDateTime(user.lastLoginAt) : '—' },
                   { Icon: MapPin,     label: 'Address',      value: [user.address, user.city, user.state, user.zipCode].filter(Boolean).join(', ') || '—' },
                   { Icon: CreditCard, label: 'Currency',     value: user.preferredCurrency ?? 'USD' },
@@ -545,7 +663,6 @@ function UserDetailModal({ userId, onClose, onRefresh }: { userId: string; onClo
                 ))}
               </div>
 
-              {/* Credit score */}
               <div style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.06)', borderRadius: 12, padding: '14px 16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.55)' }}>Credit Score</span>
@@ -560,7 +677,6 @@ function UserDetailModal({ userId, onClose, onRefresh }: { userId: string; onClo
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'rgba(255,255,255,.25)', marginTop: 3 }}><span>300</span><span>850</span></div>
               </div>
 
-              {/* Live KYC document details — from data.kyc (KYC collection), not user.kycStatus */}
               {data?.kyc && (
                 <div style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.06)', borderRadius: 12, padding: '14px 16px' }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.55)', marginBottom: 10 }}>KYC Document</div>
@@ -585,27 +701,11 @@ function UserDetailModal({ userId, onClose, onRefresh }: { userId: string; onClo
                       <div style={{ fontSize: 12, color: '#fca5a5' }}>{data.kyc.rejectionNote}</div>
                     </div>
                   )}
-                  {/* KYC document images */}
                   {(data.kyc.frontImageUrl || data.kyc.selfieUrl) && (
                     <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-                      {data.kyc.frontImageUrl && (
-                        <a href={data.kyc.frontImageUrl} target="_blank" rel="noreferrer"
-                          style={{ fontSize: 11, fontWeight: 600, color: '#60a5fa', textDecoration: 'none' }}>
-                          📄 View ID Front
-                        </a>
-                      )}
-                      {data.kyc.backImageUrl && (
-                        <a href={data.kyc.backImageUrl} target="_blank" rel="noreferrer"
-                          style={{ fontSize: 11, fontWeight: 600, color: '#60a5fa', textDecoration: 'none' }}>
-                          📄 View ID Back
-                        </a>
-                      )}
-                      {data.kyc.selfieUrl && (
-                        <a href={data.kyc.selfieUrl} target="_blank" rel="noreferrer"
-                          style={{ fontSize: 11, fontWeight: 600, color: '#60a5fa', textDecoration: 'none' }}>
-                          🤳 View Selfie
-                        </a>
-                      )}
+                      {data.kyc.frontImageUrl && <a href={data.kyc.frontImageUrl} target="_blank" rel="noreferrer" style={{ fontSize: 11, fontWeight: 600, color: '#60a5fa', textDecoration: 'none' }}>📄 View ID Front</a>}
+                      {data.kyc.backImageUrl  && <a href={data.kyc.backImageUrl}  target="_blank" rel="noreferrer" style={{ fontSize: 11, fontWeight: 600, color: '#60a5fa', textDecoration: 'none' }}>📄 View ID Back</a>}
+                      {data.kyc.selfieUrl     && <a href={data.kyc.selfieUrl}     target="_blank" rel="noreferrer" style={{ fontSize: 11, fontWeight: 600, color: '#60a5fa', textDecoration: 'none' }}>🤳 View Selfie</a>}
                     </div>
                   )}
                 </div>
@@ -698,8 +798,12 @@ function UserDetailModal({ userId, onClose, onRefresh }: { userId: string; onClo
 
       {/* Credit modal */}
       {creditOpen && user && (
-        <CreditModal user={user} onClose={() => setCreditOpen(false)}
-          onDone={() => { refresh(); onRefresh(); }} />
+        <CreditModal user={user} onClose={() => setCreditOpen(false)} onDone={() => { refresh(); onRefresh(); }} />
+      )}
+
+      {/* Reset Password modal ← NEW */}
+      {resetPwdOpen && user && (
+        <ResetPasswordModal user={user} onClose={() => setResetPwdOpen(false)} onDone={() => { refresh(); onRefresh(); showToast('Password reset successfully'); }} />
       )}
     </div>
   );
@@ -722,13 +826,11 @@ export default function AdminUsersPage() {
   const load = useCallback(async (page = 1, q = search, st = status) => {
     setLoading(true);
     try {
-      // No role=user needed — backend now excludes admin/super_admin by default
       const params: any = { page, limit: 20 };
       if (q)  params.search = q;
       if (st) params.status = st;
       const res = await adminApi.get('/admin/users', { params });
       const d   = res.data.data ?? res.data;
-      // Belt-and-braces: never show admin rows even if backend returns them
       const regularUsers = (d.users ?? []).filter(
         (u: AdminUserRecord) => u.role !== 'admin' && u.role !== 'super_admin'
       );
@@ -756,7 +858,6 @@ export default function AdminUsersPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, fontFamily: 'Inter, system-ui, sans-serif' }}>
 
-      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontSize: 'clamp(18px,2.5vw,24px)', fontWeight: 800, color: '#fff', margin: '0 0 4px', letterSpacing: '-.4px' }}>Users</h1>
@@ -774,7 +875,6 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      {/* Filters */}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 200, maxWidth: 400 }}>
           <Search size={14} color="rgba(255,255,255,.25)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
@@ -795,7 +895,6 @@ export default function AdminUsersPage() {
         </select>
       </div>
 
-      {/* Table */}
       <div style={{ background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 18, overflow: 'hidden' }}>
         {loading && users.length === 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 280, gap: 10, color: 'rgba(255,255,255,.3)', fontSize: 13 }}>
@@ -820,7 +919,6 @@ export default function AdminUsersPage() {
               <tbody>
                 {users.map(u => {
                   const sc = STATUS_CFG[u.status] ?? STATUS_CFG.pending;
-                  const kc = KYC_CFG[u.kycStatus] ?? KYC_CFG.not_started;
                   const cc = u.creditScore >= 750 ? '#34d399' : u.creditScore >= 670 ? '#f59e0b' : '#f87171';
                   return (
                     <tr key={u._id} style={{ borderBottom: '1px solid rgba(255,255,255,.04)', transition: 'background .15s' }}
@@ -838,10 +936,7 @@ export default function AdminUsersPage() {
                         </div>
                       </td>
                       <td style={{ padding: '12px 16px' }}><Pill label={u.status} bg={sc.bg} color={sc.color} /></td>
-                      <td style={{ padding: '12px 16px' }}>
-                        {/* kycStatus here is from the User document — the live KYC is in the detail modal */}
-                        <Pill label={(u.kycStatus ?? 'not started').replace(/_/g, ' ')} {...(KYC_CFG[u.kycStatus] ?? KYC_CFG.not_started)} />
-                      </td>
+                      <td style={{ padding: '12px 16px' }}><Pill label={(u.kycStatus ?? 'not started').replace(/_/g, ' ')} {...(KYC_CFG[u.kycStatus] ?? KYC_CFG.not_started)} /></td>
                       <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontWeight: 700, color: cc }}>{u.creditScore}</td>
                       <td style={{ padding: '12px 16px' }}><Pill label={u.role.replace(/_/g, ' ')} bg="rgba(245,158,11,.1)" color="#f59e0b" /></td>
                       <td style={{ padding: '12px 16px', color: 'rgba(255,255,255,.4)', fontSize: 12, whiteSpace: 'nowrap' }}>{formatDate(u.createdAt)}</td>
@@ -860,7 +955,6 @@ export default function AdminUsersPage() {
         )}
       </div>
 
-      {/* Pagination */}
       {pagination.pages > 1 && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,.35)' }}>
@@ -888,7 +982,6 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* Modals */}
       {detailId && <UserDetailModal userId={detailId} onClose={() => setDetailId(null)} onRefresh={() => load(pagination.page)} />}
       {showCreate && <CreateUserModal onClose={() => setShowCreate(false)} onDone={() => load(1)} />}
 
