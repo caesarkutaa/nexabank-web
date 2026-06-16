@@ -404,7 +404,7 @@ export default function TransfersPage() {
               <div className="fg">
                 <label className="fl">Recipient Account Number</label>
                 <div style={{ position:'relative' }}>
-                  <input className="nxinput" value={toAccNum} onChange={e=>handleAccNumChange(e.target.value)} placeholder="NexaBank account number" maxLength={20}/>
+                  <input className="nxinput" value={toAccNum} onChange={e=>handleAccNumChange(e.target.value)}  maxLength={20}/>
                   {lookupLoading && <Loader2 size={14} className="nx-spin" style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', color:'#f59e0b' }}/>}
                 </div>
                 {lookupResult && (
@@ -419,21 +419,21 @@ export default function TransfersPage() {
 
             {/* Interbank — with bank autocomplete */}
             {ttype==='interbank' && (<>
-              <F label="Recipient Account Number" val={toAccNum} set={setToAccNum} ph="External account number"/>
-              <F label="Routing Number (ABA)" val={routing} set={setRouting} ph="9-digit routing number"/>
+              <F label="Recipient Account Number" val={toAccNum} set={setToAccNum} ph=""/>
+              <F label="Routing Number (ABA)" val={routing} set={setRouting} ph=""/>
               <div className="fg">
                 <label className="fl">Bank Name</label>
-                <BankAutocomplete value={bankName} onChange={setBankName} placeholder="Start typing bank name…"/>
+                <BankAutocomplete value={bankName} onChange={setBankName} placeholder=""/>
               </div>
-              <F label="Recipient Name" val={recipName} set={setRecipName} ph="Full name"/>
+              <F label="Recipient Name" val={recipName} set={setRecipName} ph=""/>
             </>)}
 
             {/* International — with bank autocomplete */}
             {ttype==='international' && (<>
-              <F label="Recipient Name" val={recipName} set={setRecipName} ph="Full legal name"/>
+              <F label="Recipient Name" val={recipName} set={setRecipName} ph=""/>
               <div className="fg">
                 <label className="fl">Recipient Bank</label>
-                <BankAutocomplete value={recipBank} onChange={setRecipBank} placeholder="Start typing bank name…"/>
+                <BankAutocomplete value={recipBank} onChange={setRecipBank} placeholder=""/>
               </div>
               <F label="SWIFT / BIC Code" val={swift} set={setSwift} ph="e.g. BSCHESMM"/>
               <F label="IBAN Number" val={iban} set={setIban} ph="e.g. ES9121000418450200051332"/>

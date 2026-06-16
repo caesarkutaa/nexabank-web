@@ -74,7 +74,7 @@ function EditModal({ tx, onClose, onDone }: { tx: Tx; onClose: () => void; onDon
   const [balAfter,   setBalAfter]   = useState(String(tx.balanceAfter ?? ''));
   // Dates
   const [createdAt,  setCreatedAt]  = useState(toLocal(tx.createdAt));
-  const [processedAt,setProcessedAt]= useState(toLocal(tx.processedAt || tx.createdAt));
+
   // Recipient
   const [recName,    setRecName]    = useState(tx.recipientName || '');
   const [recAcc,     setRecAcc]     = useState(tx.recipientAccountNumber || '');
@@ -96,40 +96,40 @@ function EditModal({ tx, onClose, onDone }: { tx: Tx; onClose: () => void; onDon
   const [ok,      setOk]      = useState('');
 
   const submit = async () => {
-    setErr(''); setOk('');
-    setLoading(true);
-    try {
-      await adminApi.put(`/admin/transactions/${tx._id}`, {
-        status, direction, type: txType,
-        amount:                 parseFloat(amount)   || undefined,
-        fee:                    parseFloat(fee)       ?? 0,
-        currency, description: desc,
-        referenceNumber:        refNum               || undefined,
-        balanceAfter:           balAfter ? parseFloat(balAfter) : undefined,
-        // Backdating
-        processedAt:            processedAt ? new Date(processedAt).toISOString() : undefined,
-        createdAt:              createdAt   ? new Date(createdAt).toISOString()   : undefined,
-        // Recipient
-        recipientName:          recName    || undefined,
-        recipientAccountNumber: recAcc     || undefined,
-        recipientBankName:      recBank    || undefined,
-        recipientRoutingNumber: recRouting || undefined,
-        recipientCountry:       recCountry || undefined,
-        // Sender
-        senderName:             sendName   || undefined,
-        senderAccountNumber:    sendAcc    || undefined,
-        senderBankName:         sendBank   || undefined,
-        // Wire
-        swiftCode:              swift      || undefined,
-        ibanNumber:             iban       || undefined,
-        // Admin
-        adminNotes:             adminNotes || undefined,
-      });
-      setOk('Transaction updated');
-      setTimeout(() => { onDone(); onClose(); }, 1000);
-    } catch (e: any) { setErr(e.response?.data?.message || 'Failed to update'); }
-    finally { setLoading(false); }
-  };
+  setErr(''); setOk('');
+  setLoading(true);
+  try {
+    await adminApi.put(`/admin/transactions/${tx._id}`, {
+      status, direction, type: txType,
+      amount:                 parseFloat(amount)   || undefined,
+      fee:                    parseFloat(fee)       ?? 0,
+      currency, description: desc,
+      referenceNumber:        refNum               || undefined,
+      balanceAfter:           balAfter ? parseFloat(balAfter) : undefined,
+      // Backdating — single date, mirrored to processedAt
+      createdAt:              createdAt ? new Date(createdAt).toISOString() : undefined,
+      processedAt:            createdAt ? new Date(createdAt).toISOString() : undefined,
+      // Recipient
+      recipientName:          recName    || undefined,
+      recipientAccountNumber: recAcc     || undefined,
+      recipientBankName:      recBank    || undefined,
+      recipientRoutingNumber: recRouting || undefined,
+      recipientCountry:       recCountry || undefined,
+      // Sender
+      senderName:             sendName   || undefined,
+      senderAccountNumber:    sendAcc    || undefined,
+      senderBankName:         sendBank   || undefined,
+      // Wire
+      swiftCode:              swift      || undefined,
+      ibanNumber:             iban       || undefined,
+      // Admin
+      adminNotes:             adminNotes || undefined,
+    });
+    setOk('Transaction updated');
+    setTimeout(() => { onDone(); onClose(); }, 1000);
+  } catch (e: any) { setErr(e.response?.data?.message || 'Failed to update'); }
+  finally { setLoading(false); }
+};
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', backdropFilter: 'blur(8px)', zIndex: 9100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
@@ -201,20 +201,14 @@ function EditModal({ tx, onClose, onDone }: { tx: Tx; onClose: () => void; onDon
           </div>
 
           {/* ── Backdating ── */}
-          <SecHead title="Dates — Backdating" icon={Calendar} color="#60a5fa" />
-          <div style={{ background: 'rgba(96,165,250,.06)', border: '1px solid rgba(96,165,250,.15)', borderRadius: 9, padding: '9px 13px', fontSize: 11, color: 'rgba(96,165,250,.8)', lineHeight: 1.6 }}>
-            📅 Editing these dates changes what the user sees. Audit log always records the true edit time regardless.
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <Lbl t="Transaction Date (createdAt)" />
-              <input type="datetime-local" value={createdAt} onChange={e => setCreatedAt(e.target.value)} style={{ ...inp, colorScheme: 'dark' }} onFocus={fg} onBlur={br} />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <Lbl t="Processed / Value Date" />
-              <input type="datetime-local" value={processedAt} onChange={e => setProcessedAt(e.target.value)} style={{ ...inp, colorScheme: 'dark' }} onFocus={fg} onBlur={br} />
-            </div>
-          </div>
+          <SecHead title="Date — Backdating" icon={Calendar} color="#60a5fa" />
+<div style={{ background: 'rgba(96,165,250,.06)', border: '1px solid rgba(96,165,250,.15)', borderRadius: 9, padding: '9px 13px', fontSize: 11, color: 'rgba(96,165,250,.8)', lineHeight: 1.6 }}>
+  📅 Editing this date changes what the user sees. Audit log always records the true edit time regardless.
+</div>
+<div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+  <Lbl t="Transaction Date" />
+  <input type="datetime-local" value={createdAt} onChange={e => setCreatedAt(e.target.value)} style={{ ...inp, colorScheme: 'dark' }} onFocus={fg} onBlur={br} />
+</div>
 
           {/* ── Recipient ── */}
           <SecHead title="Recipient Details" icon={User} color="#34d399" />

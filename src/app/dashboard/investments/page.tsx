@@ -57,7 +57,7 @@ function StockTradeModal({mode,position,accounts,onClose,onDone}:{mode:'buy'|'se
     try{
       if(mode==='buy'){await api.post('/investments/buy',{symbol:symbol.toUpperCase(),shares:sharesNum,accountId});}
       else{await api.post('/investments/sell',{investmentId:position!._id,sharesToSell:sharesNum,accountId});}
-      toast.success(mode==='buy'?'Buy order placed — pending admin approval!':'Sell order placed!');onDone();onClose();
+      toast.success(mode==='buy'?'Buy order placed — pending  approval!':'Sell order placed!');onDone();onClose();
     }catch(e:any){toast.error(e.response?.data?.message||'Order failed');}finally{setLoading(false);}
   };
   return(
@@ -105,7 +105,7 @@ function CryptoTradeModal({mode,position,accounts,rates,onClose,onDone}:{mode:'b
     if(!accountId)return toast.error('Select an account');
     setLoading(true);
     try{
-      if(mode==='buy'){if(!amtNum||amtNum<=0){setLoading(false);return toast.error('Enter amount');}if(insuf){setLoading(false);return toast.error('Insufficient funds');}await api.post('/crypto/invest/buy',{symbol:coin,amountUSD:amtNum,accountId});toast.success('Buy order placed — pending admin approval!');}
+      if(mode==='buy'){if(!amtNum||amtNum<=0){setLoading(false);return toast.error('Enter amount');}if(insuf){setLoading(false);return toast.error('Insufficient funds');}await api.post('/crypto/invest/buy',{symbol:coin,amountUSD:amtNum,accountId});toast.success('Buy order placed — pending approval!');}
       else{await api.post('/crypto/invest/sell',{investmentId:position!._id,accountId});toast.success(`Sold ${position?.symbol} position!`);}
       onDone();onClose();
     }catch(e:any){toast.error(e.response?.data?.message||'Order failed');}finally{setLoading(false);}
@@ -198,7 +198,7 @@ export default function InvestmentsPage(){
       </div>
 
       {tab==='stocks'&&<>
-        {pendingStocks>0&&<div style={{display:'flex',alignItems:'center',gap:10,background:'rgba(245,158,11,.08)',border:'1px solid rgba(245,158,11,.25)',borderRadius:12,padding:'12px 16px',marginBottom:16}}><Clock size={15} color="#f59e0b" style={{flexShrink:0}}/><p style={{fontSize:13,color:'#f59e0b',margin:0,fontWeight:600}}>{pendingStocks} stock order{pendingStocks!==1?'s':''} pending admin approval — funds reserved, released if rejected.</p></div>}
+        {pendingStocks>0&&<div style={{display:'flex',alignItems:'center',gap:10,background:'rgba(245,158,11,.08)',border:'1px solid rgba(245,158,11,.25)',borderRadius:12,padding:'12px 16px',marginBottom:16}}><Clock size={15} color="#f59e0b" style={{flexShrink:0}}/><p style={{fontSize:13,color:'#f59e0b',margin:0,fontWeight:600}}>{pendingStocks} stock order{pendingStocks!==1?'s':''} pending  approval — funds reserved, released if rejected.</p></div>}
         <div className="port-card"><div className="port-inner"><div><div className="pc-label">Portfolio Value <span style={{fontSize:10,background:'rgba(96,165,250,.12)',border:'1px solid rgba(96,165,250,.2)',color:'#60a5fa',padding:'1px 7px',borderRadius:100,marginLeft:8,fontWeight:700}}>USD</span></div><div className="pc-value">{stockLoad?'—':usd(stockSum?.totalValue??0)}</div>{stockSum&&<div style={{display:'flex',alignItems:'center',gap:8,marginTop:6,flexWrap:'wrap'}}><span style={{color:sPnl>=0?'#34d399':'#f87171',fontSize:14,fontWeight:700,fontFamily:'monospace'}}>{sPnl>=0?'+':''}{usd(sPnl)}</span><span style={{color:sPnl>=0?'#34d399':'#f87171',fontSize:13}}>({fmtPct(sPct)})</span><span style={{fontSize:12,color:'rgba(255,255,255,.35)'}}>P&L</span></div>}</div><div className="pc-stats"><div className="pc-stat"><div className="pc-stat-l">Invested</div><div className="pc-stat-v">{stockLoad?'—':usd(stockSum?.totalInvested??0)}</div></div><div className="pc-stat"><div className="pc-stat-l">Positions</div><div className="pc-stat-v">{stockHoldings.length}</div></div></div></div></div>
         <div className="sec-title">My Stock Holdings {stockHoldings.length>0&&<span style={{fontSize:12,color:'rgba(255,255,255,.35)',fontWeight:500,marginLeft:8}}>{stockHoldings.length} position{stockHoldings.length!==1?'s':''}</span>}</div>
         {stockLoad?<div className="cen"><Loader2 size={20} className="nx-spin"/> Loading…</div>:stockHoldings.length===0?<div className="empty"><BarChart3 size={40} color="rgba(255,255,255,.12)"/><p>No positions yet. Buy your first stock above.</p></div>:
@@ -222,7 +222,7 @@ export default function InvestmentsPage(){
       </>}
 
       {tab==='crypto'&&<>
-        {pendingCrypto>0&&<div style={{display:'flex',alignItems:'center',gap:10,background:'rgba(245,158,11,.08)',border:'1px solid rgba(245,158,11,.25)',borderRadius:12,padding:'12px 16px',marginBottom:16}}><Clock size={15} color="#f59e0b" style={{flexShrink:0}}/><p style={{fontSize:13,color:'#f59e0b',margin:0,fontWeight:600}}>{pendingCrypto} crypto order{pendingCrypto!==1?'s':''} pending admin approval.</p></div>}
+        {pendingCrypto>0&&<div style={{display:'flex',alignItems:'center',gap:10,background:'rgba(245,158,11,.08)',border:'1px solid rgba(245,158,11,.25)',borderRadius:12,padding:'12px 16px',marginBottom:16}}><Clock size={15} color="#f59e0b" style={{flexShrink:0}}/><p style={{fontSize:13,color:'#f59e0b',margin:0,fontWeight:600}}>{pendingCrypto} crypto order{pendingCrypto!==1?'s':''} pending  approval.</p></div>}
         <div className="port-card" style={{background:'linear-gradient(135deg,#1a0533,#0d1a2e)'}}><div className="port-inner"><div><div className="pc-label">Crypto Portfolio</div><div className="pc-value">{cryptoLoad?'—':usd(cryptoSum?.totalValue??0)}</div>{cryptoSum&&<div style={{display:'flex',alignItems:'center',gap:8,marginTop:6,flexWrap:'wrap'}}><span style={{color:cPnl>=0?'#34d399':'#f87171',fontSize:14,fontWeight:700,fontFamily:'monospace'}}>{cPnl>=0?'+':''}{usd(cPnl)}</span><span style={{color:cPnl>=0?'#34d399':'#f87171',fontSize:13}}>({fmtPct(cPct)})</span></div>}</div><div className="pc-stats"><div className="pc-stat"><div className="pc-stat-l">Invested</div><div className="pc-stat-v">{cryptoLoad?'—':usd(cryptoSum?.totalInvested??0)}</div></div><div className="pc-stat"><div className="pc-stat-l">Positions</div><div className="pc-stat-v">{cryptoHoldings.length}</div></div></div></div></div>
         <div style={{marginBottom:20}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}><span style={{fontSize:13,fontWeight:700,color:'rgba(255,255,255,.6)'}}>Live Rates (USD)</span><button onClick={async()=>{setRateLoad(true);try{const r=await api.get('/crypto/rates');setRates(r.data.data??r.data??{});}catch{}finally{setRateLoad(false);}}} disabled={rateLoad} style={{display:'inline-flex',alignItems:'center',gap:5,background:'none',border:'none',fontSize:12,color:'rgba(255,255,255,.35)',cursor:'pointer',fontFamily:'inherit'}}><RefreshCw size={13} className={rateLoad?'nx-spin':''}/> Refresh</button></div>

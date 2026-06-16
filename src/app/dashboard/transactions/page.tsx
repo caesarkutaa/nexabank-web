@@ -88,7 +88,7 @@ function TxDrawer({ tx, onClose }: { tx: Tx; onClose: () => void }) {
     ...(tx.recipientBankName    ? [{ l:'Bank',        v: tx.recipientBankName }]                         : []),
     ...(tx.balanceAfter !== undefined ? [{ l:'Balance After', v: f(tx.balanceAfter) }]                   : []),
       { l:'Transaction Date', v: fmtDT(tx.processedAt || tx.createdAt) },
-     { l:'Posted Date',     v: fmtDT(tx.processedAt || tx.createdAt) },
+     
   ];
 
   return (

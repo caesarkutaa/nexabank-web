@@ -547,7 +547,7 @@ function FundModal({ account, onClose, onDone }: { account: Account; onClose: ()
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5, gridColumn: '1/-1' }}><Lbl t="Description" /><input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Purpose…" style={inp} onFocus={fg} onBlur={br} /></div>
             </div>
             <div style={{ fontSize: 11, color: 'rgba(96,165,250,.7)', background: 'rgba(96,165,250,.06)', border: '1px solid rgba(96,165,250,.15)', borderRadius: 9, padding: '9px 12px' }}>
-              Fee: $2.50 (≤$1,000) · $5.00 (&gt;$1,000) · Settles in 1–2 business days
+              Fee: $2.50 (≤$1,000) · $5.00 (&gt;$1,000) · Settles in 24 business days
             </div>
           </>
         )}
