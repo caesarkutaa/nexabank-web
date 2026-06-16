@@ -6,49 +6,29 @@ import {
   ChevronRight, Eye, EyeOff, BarChart3, X, User, Mail,
   Phone, MapPin, Calendar, CreditCard, Lock, Unlock,
   RefreshCw, ArrowUpRight, ArrowDownLeft, Ban, Key,
+  Pencil, Save, DollarSign, Building, Globe, FileText,
+  CheckCircle2, Clock, XCircle, Activity,
 } from 'lucide-react';
 import adminApi from '../lib/api';
 import { formatDate, formatDateTime } from '../../../lib/utils';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface AdminUserRecord {
-  _id:               string;
-  username:          string;
-  email:             string;
-  firstName:         string;
-  lastName:          string;
-  phoneNumber?:      string;
-  passwordHash:      string;
-  address?:          string;
-  city?:             string;
-  state?:            string;
-  zipCode?:          string;
-  country?:          string;
-  role:              string;
-  status:            string;
-  kycStatus:         string;
-  emailVerified:     boolean;
-  creditScore:       number;
-  creditRating:      string;
-  twoFactorEnabled:  boolean;
-  preferredCurrency: string;
-  lastLoginAt?:      string;
-  createdAt:         string;
-  profilePictureUrl?: string;
-  transferBlocked?:  boolean;
+  _id: string; username: string; email: string;
+  firstName: string; lastName: string; phoneNumber?: string;
+  passwordHash: string; address?: string; city?: string;
+  state?: string; zipCode?: string; country?: string;
+  role: string; status: string; kycStatus: string;
+  emailVerified: boolean; creditScore: number; creditRating: string;
+  twoFactorEnabled: boolean; preferredCurrency: string;
+  lastLoginAt?: string; createdAt: string;
+  profilePictureUrl?: string; transferBlocked?: boolean;
 }
-
 interface UserDetail {
-  user:         AdminUserRecord;
-  accounts:     any[];
-  transactions: any[];
-  loans:        any[];
-  kyc:          any;
+  user: AdminUserRecord; accounts: any[];
+  transactions: any[]; loans: any[]; kyc: any;
 }
-
-interface Pagination {
-  total: number; page: number; limit: number; pages: number;
-}
+interface Pagination { total: number; page: number; limit: number; pages: number; }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function ini(a?: string, b?: string) {
@@ -61,16 +41,24 @@ function fmtC(n: number, cur = 'USD') {
 
 const STATUS_CFG: Record<string, { bg: string; color: string }> = {
   active:    { bg: 'rgba(52,211,153,.12)',  color: '#34d399' },
-  pending:   { bg: 'rgba(245,158,11,.12)', color: '#f59e0b' },
-  suspended: { bg: 'rgba(239,68,68,.12)',  color: '#f87171' },
-  locked:    { bg: 'rgba(239,68,68,.12)',  color: '#f87171' },
+  pending:   { bg: 'rgba(245,158,11,.12)',  color: '#f59e0b' },
+  suspended: { bg: 'rgba(239,68,68,.12)',   color: '#f87171' },
+  locked:    { bg: 'rgba(239,68,68,.12)',   color: '#f87171' },
 };
 const KYC_CFG: Record<string, { bg: string; color: string }> = {
   approved:    { bg: 'rgba(52,211,153,.12)',  color: '#34d399' },
-  pending:     { bg: 'rgba(245,158,11,.12)', color: '#f59e0b' },
-  rejected:    { bg: 'rgba(239,68,68,.12)',  color: '#f87171' },
-  not_started: { bg: 'rgba(148,163,184,.1)', color: '#94a3b8' },
-  resubmit:    { bg: 'rgba(245,158,11,.12)', color: '#f59e0b' },
+  pending:     { bg: 'rgba(245,158,11,.12)',  color: '#f59e0b' },
+  rejected:    { bg: 'rgba(239,68,68,.12)',   color: '#f87171' },
+  not_started: { bg: 'rgba(148,163,184,.1)',  color: '#94a3b8' },
+  resubmit:    { bg: 'rgba(245,158,11,.12)',  color: '#f59e0b' },
+};
+const TX_SC: Record<string, { bg: string; color: string; Icon: React.ElementType }> = {
+  completed:  { bg: 'rgba(52,211,153,.12)',  color: '#34d399', Icon: CheckCircle2 },
+  pending:    { bg: 'rgba(245,158,11,.12)',  color: '#f59e0b', Icon: Clock        },
+  processing: { bg: 'rgba(96,165,250,.12)',  color: '#60a5fa', Icon: Activity     },
+  failed:     { bg: 'rgba(239,68,68,.12)',   color: '#f87171', Icon: XCircle      },
+  cancelled:  { bg: 'rgba(239,68,68,.12)',   color: '#f87171', Icon: XCircle      },
+  reversed:   { bg: 'rgba(167,139,250,.12)', color: '#a78bfa', Icon: Activity     },
 };
 
 const inp: React.CSSProperties = {
@@ -79,324 +67,172 @@ const inp: React.CSSProperties = {
   outline: 'none', fontFamily: 'inherit', WebkitTextFillColor: '#fff',
   boxSizing: 'border-box', transition: 'border-color .2s',
 };
+const fg  = (e: React.FocusEvent<any>) => (e.target.style.borderColor = 'rgba(245,158,11,.5)');
+const fgR = (e: React.FocusEvent<any>) => (e.target.style.borderColor = 'rgba(239,68,68,.5)');
+const blr = (e: React.FocusEvent<any>) => (e.target.style.borderColor = 'rgba(255,255,255,.1)');
 
 function Pill({ label, bg, color }: { label: string; bg: string; color: string }) {
   return <span style={{ display: 'inline-block', background: bg, color, fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100, textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{label.replace(/_/g, ' ')}</span>;
 }
-
 function Lbl({ text }: { text: string }) {
   return <label style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.45)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{text}</label>;
 }
-
-// ─── Reset Password Modal ─────────────────────────────────────────────────────
-function ResetPasswordModal({ user, onClose, onDone }: {
-  user: AdminUserRecord; onClose: () => void; onDone: () => void;
-}) {
-  const [newPassword,  setNewPassword]  = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading,      setLoading]      = useState(false);
-  const [err,          setErr]          = useState('');
-  const [ok,           setOk]           = useState('');
-
-  const checks = {
-    length:    newPassword.length >= 8,
-    uppercase: /[A-Z]/.test(newPassword),
-    number:    /[0-9]/.test(newPassword),
-    special:   /[\W_]/.test(newPassword),
-  };
-  const strong = Object.values(checks).every(Boolean);
-  const scoreColor = strong ? '#34d399' : newPassword.length > 0 ? '#f59e0b' : 'rgba(255,255,255,.2)';
-
-  const submit = async () => {
-    setErr(''); setOk('');
-    if (!newPassword) return setErr('Enter a new password');
-    if (newPassword.length < 8) return setErr('Password must be at least 8 characters');
-    setLoading(true);
-    try {
-      await adminApi.patch(`/admin/users/${user._id}/reset-password`, { newPassword });
-      setOk(`Password reset successfully for @${user.username}`);
-      setTimeout(() => { onDone(); onClose(); }, 1500);
-    } catch (e: any) {
-      setErr(e?.response?.data?.message || 'Failed to reset password');
-    } finally { setLoading(false); }
-  };
-
+function SecHead({ title, icon: Icon, color }: { title: string; icon: React.ElementType; color: string }) {
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.82)', backdropFilter: 'blur(8px)', zIndex: 9300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
-      onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{ background: '#111826', border: '1px solid rgba(255,255,255,.1)', borderRadius: 18, padding: '24px 22px', width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <h3 style={{ fontSize: 16, fontWeight: 800, color: '#fff', margin: '0 0 4px' }}>Reset Password</h3>
-            <p style={{ fontSize: 12, color: 'rgba(255,255,255,.38)', margin: 0 }}>
-              @{user.username} · {user.email}
-            </p>
-          </div>
-          <button onClick={onClose} style={{ background: 'rgba(255,255,255,.06)', border: 'none', borderRadius: 8, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.4)', cursor: 'pointer', flexShrink: 0, marginLeft: 8 }}>
-            <X size={14} />
-          </button>
-        </div>
-
-        {/* Warning */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, background: 'rgba(245,158,11,.08)', border: '1px solid rgba(245,158,11,.2)', borderRadius: 10, padding: '11px 13px' }}>
-          <AlertCircle size={14} color="#f59e0b" style={{ flexShrink: 0, marginTop: 1 }} />
-          <p style={{ fontSize: 12, color: 'rgba(245,158,11,.85)', margin: 0, lineHeight: 1.6 }}>
-            The user will be required to use this new password on their next login. This action is logged.
-          </p>
-        </div>
-
-        {/* Error / Success */}
-        {err && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(239,68,68,.09)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 10, padding: '10px 13px' }}>
-            <AlertCircle size={13} color="#f87171" />
-            <span style={{ fontSize: 13, color: '#fca5a5' }}>{err}</span>
-          </div>
-        )}
-        {ok && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(52,211,153,.09)', border: '1px solid rgba(52,211,153,.2)', borderRadius: 10, padding: '10px 13px' }}>
-            <Key size={13} color="#34d399" />
-            <span style={{ fontSize: 13, color: '#6ee7b7' }}>{ok}</span>
-          </div>
-        )}
-
-        {/* New password field */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <Lbl text="New Password" />
-          <div style={{ position: 'relative' }}>
-            <input
-              type={showPassword ? 'text' : 'password'}
-              value={newPassword}
-              onChange={e => setNewPassword(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && submit()}
-              placeholder="Min. 8 characters"
-              autoFocus
-              style={{ ...inp, paddingRight: 40 }}
-              onFocus={e => (e.target.style.borderColor = 'rgba(245,158,11,.5)')}
-              onBlur={e  => (e.target.style.borderColor = 'rgba(255,255,255,.1)')}
-            />
-            <button
-              type="button"
-              tabIndex={-1}
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => setShowPassword(v => !v)}
-              style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,.35)', cursor: 'pointer', padding: 0, display: 'flex' }}>
-              {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-            </button>
-          </div>
-
-          {/* Strength checklist */}
-          {newPassword.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px 10px', marginTop: 4 }}>
-              {([
-                { ok: checks.length,    label: '8+ characters'        },
-                { ok: checks.uppercase, label: 'Uppercase (A–Z)'      },
-                { ok: checks.number,    label: 'Number (0–9)'         },
-                { ok: checks.special,   label: 'Special char (!@#…)'  },
-              ] as { ok: boolean; label: string }[]).map(({ ok: c, label }) => (
-                <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: c ? '#34d399' : 'rgba(255,255,255,.3)' }}>
-                  {c ? '✓' : '○'} {label}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Strength bar */}
-          {newPassword.length > 0 && (
-            <div style={{ height: 3, background: 'rgba(255,255,255,.07)', borderRadius: 2, overflow: 'hidden', marginTop: 4 }}>
-              <div style={{ height: '100%', borderRadius: 2, background: scoreColor, width: `${Object.values(checks).filter(Boolean).length * 25}%`, transition: 'width .3s, background .3s' }} />
-            </div>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button onClick={onClose} style={{ flex: 1, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10, padding: '11px', fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,.5)', cursor: 'pointer', fontFamily: 'inherit' }}>
-            Cancel
-          </button>
-          <button onClick={submit} disabled={loading || !newPassword || !strong}
-            style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, background: !newPassword || !strong ? 'rgba(245,158,11,.3)' : 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#050d1a', border: 'none', borderRadius: 10, padding: '11px', fontSize: 13, fontWeight: 700, cursor: loading || !newPassword || !strong ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: loading ? .6 : 1 }}>
-            {loading ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Key size={13} />}
-            Reset Password
-          </button>
-        </div>
-      </div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '6px 0 4px', borderBottom: '1px solid rgba(255,255,255,.07)', marginBottom: 2 }}>
+      <Icon size={12} color={color} />
+      <span style={{ fontSize: 10, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '.07em' }}>{title}</span>
     </div>
   );
 }
 
-// ─── Credit Score Modal ───────────────────────────────────────────────────────
-function CreditModal({ user, onClose, onDone }: { user: AdminUserRecord; onClose: () => void; onDone: () => void }) {
-  const [score,   setScore]   = useState(String(user.creditScore ?? 300));
-  const [rating,  setRating]  = useState(user.creditRating ?? 'no_history');
-  const [loading, setLoading] = useState(false);
-  const [err,     setErr]     = useState('');
-
-  const n          = parseInt(score) || 300;
-  const scoreColor = n >= 750 ? '#34d399' : n >= 670 ? '#f59e0b' : '#f87171';
-
-  const submit = async () => {
-    if (isNaN(n) || n < 300 || n > 850) return setErr('Score must be between 300 and 850');
-    setLoading(true);
-    try {
-      await adminApi.patch(`/admin/users/${user._id}/credit-score`, { score: n, rating });
-      onDone(); onClose();
-    } catch (e: any) { setErr(e.response?.data?.message || 'Failed to update'); }
-    finally { setLoading(false); }
+// ─── Tx Edit Modal (for use inside user detail) ──────────────────────────────
+function TxEditModal({ tx, onClose, onDone }: { tx: any; onClose: () => void; onDone: () => void }) {
+  const toLocal = (iso?: string) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 16);
   };
 
+  const [status,      setStatus]      = useState(tx.status);
+  const [direction,   setDirection]   = useState(tx.direction || 'debit');
+  const [txType,      setTxType]      = useState(tx.type || '');
+  const [amount,      setAmount]      = useState(String(tx.amount ?? ''));
+  const [fee,         setFee]         = useState(String(tx.fee ?? 0));
+  const [currency,    setCurrency]    = useState(tx.currency || 'USD');
+  const [desc,        setDesc]        = useState(tx.description || '');
+  const [refNum,      setRefNum]      = useState(tx.referenceNumber || '');
+  const [balAfter,    setBalAfter]    = useState(String(tx.balanceAfter ?? ''));
+  const [createdAt,   setCreatedAt]   = useState(toLocal(tx.createdAt));
+  const [recName,     setRecName]     = useState(tx.recipientName || '');
+  const [recAcc,      setRecAcc]      = useState(tx.recipientAccountNumber || '');
+  const [recBank,     setRecBank]     = useState(tx.recipientBankName || '');
+  const [sendName,    setSendName]    = useState(tx.senderName || '');
+  const [sendAcc,     setSendAcc]     = useState(tx.senderAccountNumber || '');
+  const [sendBank,    setSendBank]    = useState(tx.senderBankName || '');
+  const [swift,       setSwift]       = useState(tx.swiftCode || '');
+  const [iban,        setIban]        = useState(tx.ibanNumber || '');
+  const [adminNotes,  setAdminNotes]  = useState(tx.metadata?.adminNotes || '');
+  const [loading,     setLoading]     = useState(false);
+  const [err,         setErr]         = useState('');
+  const [ok,          setOk]          = useState('');
+
+  const submit = async () => {
+  setErr(''); setOk(''); setLoading(true);
+  try {
+    await adminApi.put(`/admin/transactions/${tx._id}`, {
+      status, direction, type: txType,
+      amount:      parseFloat(amount) || undefined,
+      fee:         parseFloat(fee) ?? 0,
+      currency, description: desc,
+      referenceNumber: refNum || undefined,
+      balanceAfter: balAfter ? parseFloat(balAfter) : undefined,
+      createdAt:   createdAt   ? new Date(createdAt).toISOString()   : undefined,
+      processedAt: createdAt   ? new Date(createdAt).toISOString()   : undefined, // mirrors createdAt
+      recipientName:          recName   || undefined,
+      recipientAccountNumber: recAcc    || undefined,
+      recipientBankName:      recBank   || undefined,
+      senderName:             sendName  || undefined,
+      senderAccountNumber:    sendAcc   || undefined,
+      senderBankName:         sendBank  || undefined,
+      swiftCode:  swift     || undefined,
+      ibanNumber: iban      || undefined,
+      adminNotes: adminNotes || undefined,
+    });
+    setOk('Transaction updated');
+    setTimeout(() => { onDone(); onClose(); }, 900);
+  } catch (e: any) { setErr(e.response?.data?.message || 'Failed to update'); }
+  finally { setLoading(false); }
+};
+
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.8)', backdropFilter: 'blur(6px)', zIndex: 9200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.88)', backdropFilter: 'blur(8px)', zIndex: 9400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{ background: '#111826', border: '1px solid rgba(255,255,255,.1)', borderRadius: 18, padding: '24px 22px', width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontSize: 16, fontWeight: 800, color: '#fff', margin: 0 }}>Update Credit Score</h3>
+      <div style={{ background: '#0f1623', border: '1px solid rgba(255,255,255,.09)', borderRadius: 20, width: '100%', maxWidth: 680, maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', borderBottom: '1px solid rgba(255,255,255,.07)', flexShrink: 0 }}>
+          <div>
+            <h3 style={{ fontSize: 15, fontWeight: 800, color: '#fff', margin: '0 0 2px' }}>Edit Transaction</h3>
+            <p style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', margin: 0, fontFamily: 'monospace' }}>{tx.referenceNumber}</p>
+          </div>
           <button onClick={onClose} style={{ background: 'rgba(255,255,255,.06)', border: 'none', borderRadius: 8, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.4)', cursor: 'pointer' }}><X size={14} /></button>
         </div>
 
-        <div style={{ textAlign: 'center', padding: '8px 0' }}>
-          <div style={{ fontSize: 52, fontWeight: 900, color: scoreColor, fontFamily: 'monospace', letterSpacing: '-2px', lineHeight: 1 }}>{score || '—'}</div>
-          <div style={{ height: 6, background: 'rgba(255,255,255,.07)', borderRadius: 3, overflow: 'hidden', margin: '12px 0 0' }}>
-            <div style={{ height: '100%', width: `${Math.max(0, Math.min(100, (n - 300) / 550 * 100))}%`, background: scoreColor, borderRadius: 3, transition: 'width .3s ease' }} />
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'rgba(255,255,255,.25)', marginTop: 3 }}><span>300</span><span>850</span></div>
-        </div>
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {err && <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(239,68,68,.09)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 10, padding: '9px 12px' }}><AlertCircle size={13} color="#f87171" /><span style={{ fontSize: 13, color: '#fca5a5' }}>{err}</span></div>}
+          {ok  && <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(52,211,153,.09)', border: '1px solid rgba(52,211,153,.2)', borderRadius: 10, padding: '9px 12px' }}><CheckCircle2 size={13} color="#34d399" /><span style={{ fontSize: 13, color: '#6ee7b7' }}>{ok}</span></div>}
 
-        {err && <div style={{ fontSize: 12, color: '#f87171', background: 'rgba(239,68,68,.09)', borderRadius: 8, padding: '8px 12px' }}>{err}</div>}
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <Lbl text="Score (300–850)" />
-          <input type="number" min={300} max={850} value={score} onChange={e => setScore(e.target.value)} style={inp}
-            onFocus={e => (e.target.style.borderColor = 'rgba(245,158,11,.5)')}
-            onBlur={e  => (e.target.style.borderColor = 'rgba(255,255,255,.1)')} />
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <Lbl text="Rating" />
-          <select value={rating} onChange={e => setRating(e.target.value)} style={{ ...inp, appearance: 'none', cursor: 'pointer' }}
-            onFocus={e => (e.target.style.borderColor = 'rgba(245,158,11,.5)')}
-            onBlur={e  => (e.target.style.borderColor = 'rgba(255,255,255,.1)')}>
-            <option value="excellent">Excellent (750–850)</option>
-            <option value="good">Good (670–749)</option>
-            <option value="fair">Fair (580–669)</option>
-            <option value="poor">Poor (300–579)</option>
-            <option value="no_history">No History</option>
-          </select>
-        </div>
-
-        <button onClick={submit} disabled={loading}
-          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#050d1a', border: 'none', borderRadius: 12, padding: '12px', fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: loading ? .6 : 1 }}>
-          {loading && <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />}
-          <BarChart3 size={14} /> Update Score
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─── Create User Modal ────────────────────────────────────────────────────────
-function CreateUserModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
-  const [f, setF] = useState({ username: '', email: '', password: '', firstName: '', lastName: '', phoneNumber: '', role: 'user', skipEmailVerification: false, skipKyc: false });
-  const [loading,      setLoading]      = useState(false);
-  const [err,          setErr]          = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const upd = (k: string, v: any) => setF(p => ({ ...p, [k]: v }));
-
-  const submit = async () => {
-    setErr('');
-    if (!f.username || !f.email || !f.password) return setErr('Username, email and password are required');
-    setLoading(true);
-    try {
-      await adminApi.post('/admin/users', f);
-      onDone(); onClose();
-    } catch (e: any) { setErr(e.response?.data?.message || 'Failed to create user'); }
-    finally { setLoading(false); }
-  };
-
-  return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.8)', backdropFilter: 'blur(6px)', zIndex: 9100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
-      onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{ background: '#111826', border: '1px solid rgba(255,255,255,.1)', borderRadius: '20px 20px 0 0', padding: '24px 20px', width: '100%', maxWidth: 520, maxHeight: '92vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontSize: 17, fontWeight: 800, color: '#fff', margin: 0 }}>Create User</h3>
-          <button onClick={onClose} style={{ background: 'rgba(255,255,255,.06)', border: 'none', borderRadius: 8, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.4)', cursor: 'pointer' }}><X size={15} /></button>
-        </div>
-
-        {err && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(239,68,68,.09)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 10, padding: '10px 13px' }}>
-            <AlertCircle size={13} color="#f87171" /><span style={{ fontSize: 13, color: '#fca5a5' }}>{err}</span>
-          </div>
-        )}
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          {[
-            { k: 'firstName',   l: 'First Name',  p: 'John'             },
-            { k: 'lastName',    l: 'Last Name',   p: 'Doe'              },
-            { k: 'username',    l: 'Username *',  p: 'john_doe'         },
-            { k: 'email',       l: 'Email *',     p: 'john@example.com' },
-            { k: 'phoneNumber', l: 'Phone',       p: '+1 555 000 0000'  },
-          ].map(({ k, l, p }) => (
-            <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <Lbl text={l} />
-              <input type="text" value={(f as any)[k]}
-                onChange={e => upd(k, e.target.value)} placeholder={p} style={inp}
-                onFocus={e => (e.target.style.borderColor = 'rgba(245,158,11,.5)')}
-                onBlur={e  => (e.target.style.borderColor = 'rgba(255,255,255,.1)')} />
-            </div>
-          ))}
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-            <Lbl text="Password *" />
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={f.password}
-                onChange={e => upd('password', e.target.value)}
-                placeholder="SecurePass@123"
-                style={{ ...inp, paddingRight: 38 }}
-                onFocus={e => (e.target.style.borderColor = 'rgba(245,158,11,.5)')}
-                onBlur={e  => (e.target.style.borderColor = 'rgba(255,255,255,.1)')}
-              />
-              <button type="button" tabIndex={-1} onMouseDown={e => e.preventDefault()}
-                onClick={() => setShowPassword(v => !v)}
-                style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,.35)', cursor: 'pointer', padding: 0, display: 'flex' }}>
-                {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-              </button>
+          {/* Core */}
+          <SecHead title="Core Fields" icon={DollarSign} color="#f59e0b" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10 }}>
+            {[
+              { lbl:'Status', el: <select value={status} onChange={e=>setStatus(e.target.value)} style={{ ...inp, appearance:'none', cursor:'pointer' }} onFocus={fg} onBlur={blr}>{['pending','processing','completed','failed','cancelled','reversed'].map(s=><option key={s} value={s}>{s}</option>)}</select> },
+              { lbl:'Direction', el: <select value={direction} onChange={e=>setDirection(e.target.value)} style={{ ...inp, appearance:'none', cursor:'pointer' }} onFocus={fg} onBlur={blr}><option value="credit">Credit</option><option value="debit">Debit</option></select> },
+              { lbl:'Type', el: <select value={txType} onChange={e=>setTxType(e.target.value)} style={{ ...inp, appearance:'none', cursor:'pointer' }} onFocus={fg} onBlur={blr}>{['intrabank_transfer','interbank_transfer','international_transfer','deposit','withdrawal','bill_payment','loan_disbursement','loan_repayment'].map(t=><option key={t} value={t}>{t.replace(/_/g,' ')}</option>)}</select> },
+              { lbl:'Amount',   el: <input type="number" min="0" step="0.01" value={amount}  onChange={e=>setAmount(e.target.value)}  style={inp} onFocus={fg} onBlur={blr} /> },
+              { lbl:'Fee',      el: <input type="number" min="0" step="0.01" value={fee}     onChange={e=>setFee(e.target.value)}     style={inp} onFocus={fg} onBlur={blr} /> },
+              { lbl:'Currency', el: <select value={currency} onChange={e=>setCurrency(e.target.value)} style={{ ...inp, appearance:'none', cursor:'pointer' }} onFocus={fg} onBlur={blr}>{['USD','EUR','GBP','JPY','CAD','AUD','CHF','CNY','NGN','GHS'].map(c=><option key={c} value={c}>{c}</option>)}</select> },
+              { lbl:'Balance After', el: <input type="number" min="0" step="0.01" value={balAfter} onChange={e=>setBalAfter(e.target.value)} placeholder="Post-tx balance" style={inp} onFocus={fg} onBlur={blr} /> },
+              { lbl:'Ref Number', el: <input value={refNum} onChange={e=>setRefNum(e.target.value)} style={{ ...inp, fontFamily:'monospace' }} onFocus={fg} onBlur={blr} /> },
+            ].map(({ lbl, el }) => (
+              <div key={lbl} style={{ display:'flex', flexDirection:'column', gap:5 }}><Lbl text={lbl} />{el}</div>
+            ))}
+            <div style={{ display:'flex', flexDirection:'column', gap:5, gridColumn:'1/-1' }}>
+              <Lbl text="Description" />
+              <input value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Description shown to user" style={inp} onFocus={fg} onBlur={blr} />
             </div>
           </div>
+
+          {/* Backdating */}
+          <SecHead title="Date — Backdating" icon={Calendar} color="#60a5fa" />
+<div style={{ background:'rgba(96,165,250,.06)', border:'1px solid rgba(96,165,250,.15)', borderRadius:9, padding:'8px 12px', fontSize:11, color:'rgba(96,165,250,.8)', lineHeight:1.6 }}>
+  📅 This date changes what the user sees. The real edit time is always recorded in the audit log.
+</div>
+<div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+  <Lbl text="Transaction Date" />
+  <input type="datetime-local" value={createdAt} onChange={e=>setCreatedAt(e.target.value)} style={{ ...inp, colorScheme:'dark' }} onFocus={fg} onBlur={blr} />
+</div>
+
+          {/* Recipient */}
+          <SecHead title="Recipient" icon={User} color="#34d399" />
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+            <div style={{ display:'flex', flexDirection:'column', gap:5 }}><Lbl text="Name" /><input value={recName} onChange={e=>setRecName(e.target.value)} style={inp} onFocus={fg} onBlur={blr} /></div>
+            <div style={{ display:'flex', flexDirection:'column', gap:5 }}><Lbl text="Account #" /><input value={recAcc} onChange={e=>setRecAcc(e.target.value)} style={{ ...inp, fontFamily:'monospace' }} onFocus={fg} onBlur={blr} /></div>
+            <div style={{ display:'flex', flexDirection:'column', gap:5, gridColumn:'1/-1' }}><Lbl text="Bank" /><input value={recBank} onChange={e=>setRecBank(e.target.value)} style={inp} onFocus={fg} onBlur={blr} /></div>
+          </div>
+
+          {/* Sender */}
+          <SecHead title="Sender" icon={Building} color="#f59e0b" />
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+            <div style={{ display:'flex', flexDirection:'column', gap:5 }}><Lbl text="Name" /><input value={sendName} onChange={e=>setSendName(e.target.value)} style={inp} onFocus={fg} onBlur={blr} /></div>
+            <div style={{ display:'flex', flexDirection:'column', gap:5 }}><Lbl text="Account #" /><input value={sendAcc} onChange={e=>setSendAcc(e.target.value)} style={{ ...inp, fontFamily:'monospace' }} onFocus={fg} onBlur={blr} /></div>
+            <div style={{ display:'flex', flexDirection:'column', gap:5, gridColumn:'1/-1' }}><Lbl text="Bank" /><input value={sendBank} onChange={e=>setSendBank(e.target.value)} style={inp} onFocus={fg} onBlur={blr} /></div>
+          </div>
+
+          {/* Wire */}
+          <SecHead title="Wire / International" icon={Globe} color="#a78bfa" />
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+            <div style={{ display:'flex', flexDirection:'column', gap:5 }}><Lbl text="SWIFT / BIC" /><input value={swift} onChange={e=>setSwift(e.target.value)} style={{ ...inp, fontFamily:'monospace' }} onFocus={fg} onBlur={blr} /></div>
+            <div style={{ display:'flex', flexDirection:'column', gap:5 }}><Lbl text="IBAN" /><input value={iban} onChange={e=>setIban(e.target.value)} style={{ ...inp, fontFamily:'monospace' }} onFocus={fg} onBlur={blr} /></div>
+          </div>
+
+          {/* Admin notes */}
+          <SecHead title="Admin Notes (internal only)" icon={FileText} color="#94a3b8" />
+          <textarea value={adminNotes} onChange={e=>setAdminNotes(e.target.value)} placeholder="Internal notes…" rows={2}
+            style={{ ...inp, resize:'vertical', lineHeight:1.6 }} onFocus={fg} onBlur={blr} />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-            <Lbl text="Role" />
-            <select value={f.role} onChange={e => upd('role', e.target.value)} style={{ ...inp, appearance: 'none', cursor: 'pointer' }}
-              onFocus={e => (e.target.style.borderColor = 'rgba(245,158,11,.5)')}
-              onBlur={e  => (e.target.style.borderColor = 'rgba(255,255,255,.1)')}>
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
-              <option value="super_admin">Super Admin</option>
-            </select>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer', padding: '9px 13px', background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10 }}>
-              <input type="checkbox" checked={f.skipEmailVerification} onChange={e => upd('skipEmailVerification', e.target.checked)} style={{ width: 14, height: 14, accentColor: '#f59e0b', cursor: 'pointer' }} />
-              <span style={{ fontSize: 12, color: 'rgba(255,255,255,.55)', fontWeight: 600 }}>Skip email verification</span>
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer', padding: '9px 13px', background: f.skipKyc ? 'rgba(52,211,153,.06)' : 'rgba(255,255,255,.03)', border: `1px solid ${f.skipKyc ? 'rgba(52,211,153,.2)' : 'rgba(255,255,255,.08)'}`, borderRadius: 10, transition: 'all .15s' }}>
-              <input type="checkbox" checked={f.skipKyc} onChange={e => upd('skipKyc', e.target.checked)} style={{ width: 14, height: 14, accentColor: '#34d399', cursor: 'pointer' }} />
-              <div>
-                <span style={{ fontSize: 12, color: f.skipKyc ? '#34d399' : 'rgba(255,255,255,.55)', fontWeight: 600, display: 'block' }}>Auto-approve KYC</span>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', display: 'block', marginTop: 1 }}>User gets full access instantly</span>
-              </div>
-            </label>
-          </div>
+        {/* Footer */}
+        <div style={{ display:'flex', gap:10, padding:'13px 20px', borderTop:'1px solid rgba(255,255,255,.07)', flexShrink:0 }}>
+          <button onClick={onClose} style={{ flex:1, background:'rgba(255,255,255,.05)', border:'1px solid rgba(255,255,255,.08)', borderRadius:10, padding:'10px', fontSize:13, fontWeight:600, color:'rgba(255,255,255,.5)', cursor:'pointer', fontFamily:'inherit' }}>Cancel</button>
+          <button onClick={submit} disabled={loading || !!ok}
+            style={{ flex:2, display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'linear-gradient(135deg,#f59e0b,#d97706)', color:'#050d1a', border:'none', borderRadius:10, padding:'10px', fontSize:14, fontWeight:700, cursor:(loading||!!ok)?'not-allowed':'pointer', fontFamily:'inherit', opacity:(loading||!!ok)?.7:1 }}>
+            {loading ? <Loader2 size={14} style={{ animation:'spin 1s linear infinite' }} /> : <Save size={14} />}
+            Save Changes
+          </button>
         </div>
-
-        <button onClick={submit} disabled={loading}
-          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#050d1a', border: 'none', borderRadius: 12, padding: '13px', fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: loading ? .6 : 1 }}>
-          {loading ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <Plus size={15} />}
-          Create User
-        </button>
       </div>
     </div>
   );
@@ -405,6 +241,7 @@ function CreateUserModal({ onClose, onDone }: { onClose: () => void; onDone: () 
 // ─── Transactions Tab ─────────────────────────────────────────────────────────
 function TransactionsTab({ transactions, onRefresh }: { transactions: any[]; onRefresh: () => void }) {
   const [blockTx,  setBlockTx]  = useState<any | null>(null);
+  const [editTx,   setEditTx]   = useState<any | null>(null);
   const [reason,   setReason]   = useState('');
   const [actTxId,  setActTxId]  = useState<string | null>(null);
   const [localTxs, setLocalTxs] = useState(transactions);
@@ -432,7 +269,9 @@ function TransactionsTab({ transactions, onRefresh }: { transactions: any[]; onR
     finally { setActTxId(null); }
   };
 
-  if (!localTxs.length) return <div style={{ textAlign: 'center', color: 'rgba(255,255,255,.3)', padding: 40, fontSize: 13 }}>No transactions found</div>;
+  if (!localTxs.length) return (
+    <div style={{ textAlign: 'center', color: 'rgba(255,255,255,.3)', padding: 40, fontSize: 13 }}>No transactions found</div>
+  );
 
   return (
     <>
@@ -441,35 +280,58 @@ function TransactionsTab({ transactions, onRefresh }: { transactions: any[]; onR
           const isBlocked   = tx.status === 'cancelled';
           const isCompleted = tx.status === 'completed';
           const canBlock    = !isBlocked && !isCompleted;
-          const loading     = actTxId === tx._id;
+          const acting      = actTxId === tx._id;
+          const sc          = TX_SC[tx.status] ?? TX_SC.pending;
+
+          // ── Use processedAt as display date — this is what admin sets when backdating ──
+          const displayDate = tx.processedAt || tx.createdAt;
+
           return (
-            <div key={tx._id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', borderBottom: '1px solid rgba(255,255,255,.05)', flexWrap: 'wrap' }}>
+            <div key={tx._id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 0', borderBottom: '1px solid rgba(255,255,255,.05)', flexWrap: 'wrap' }}>
+              {/* Direction icon */}
               <div style={{ width: 32, height: 32, borderRadius: 9, background: tx.direction === 'credit' ? 'rgba(52,211,153,.12)' : 'rgba(239,68,68,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                {tx.direction === 'credit' ? <ArrowDownLeft size={14} color="#34d399" /> : <ArrowUpRight size={14} color="#f87171" />}
+                {tx.direction === 'credit'
+                  ? <ArrowDownLeft size={14} color="#34d399" />
+                  : <ArrowUpRight  size={14} color="#f87171" />}
               </div>
-              <div style={{ flex: 1, minWidth: 120 }}>
+
+              {/* Description + date */}
+              <div style={{ flex: 1, minWidth: 100 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'capitalize' }}>
                   {tx.description || tx.type?.replace(/_/g, ' ')}
                 </div>
+                {/* ✅ processedAt preferred — shows backdated date correctly */}
                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 1 }}>
-                  {formatDate(tx.createdAt)} · {tx.referenceNumber}
+                  {formatDate(displayDate)} · <span style={{ fontFamily: 'monospace' }}>{tx.referenceNumber}</span>
                 </div>
               </div>
+
+              {/* Amount + status */}
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: tx.direction === 'credit' ? '#34d399' : '#f87171', fontFamily: 'monospace' }}>
                   {tx.direction === 'credit' ? '+' : '-'}${Number(tx.amount ?? 0).toFixed(2)}
                 </div>
-                <Pill label={tx.status} {...(STATUS_CFG[tx.status] ?? { bg: 'rgba(148,163,184,.1)', color: '#94a3b8' })} />
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: sc.bg, color: sc.color, fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 100 }}>
+                  <sc.Icon size={9} /> {tx.status}
+                </span>
               </div>
-              <div style={{ flexShrink: 0 }}>
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+                {/* Edit button ← NEW */}
+                <button onClick={() => setEditTx(tx)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(245,158,11,.1)', border: '1px solid rgba(245,158,11,.2)', borderRadius: 7, padding: '5px 9px', fontSize: 11, fontWeight: 700, color: '#f59e0b', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                  <Pencil size={11} /> Edit
+                </button>
+
                 {isBlocked ? (
-                  <button onClick={() => doUnblock(tx)} disabled={loading}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(52,211,153,.1)', border: '1px solid rgba(52,211,153,.2)', borderRadius: 7, padding: '5px 10px', fontSize: 11, fontWeight: 700, color: '#34d399', cursor: 'pointer', fontFamily: 'inherit', opacity: loading ? .5 : 1 }}>
-                    {loading ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Unlock size={11} />} Unblock
+                  <button onClick={() => doUnblock(tx)} disabled={acting}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(52,211,153,.1)', border: '1px solid rgba(52,211,153,.2)', borderRadius: 7, padding: '5px 9px', fontSize: 11, fontWeight: 700, color: '#34d399', cursor: 'pointer', fontFamily: 'inherit', opacity: acting ? .5 : 1 }}>
+                    {acting ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Unlock size={11} />} Unblock
                   </button>
                 ) : canBlock ? (
                   <button onClick={() => setBlockTx(tx)}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(239,68,68,.08)', border: '1px solid rgba(239,68,68,.18)', borderRadius: 7, padding: '5px 10px', fontSize: 11, fontWeight: 700, color: '#f87171', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(239,68,68,.08)', border: '1px solid rgba(239,68,68,.18)', borderRadius: 7, padding: '5px 9px', fontSize: 11, fontWeight: 700, color: '#f87171', cursor: 'pointer', fontFamily: 'inherit' }}>
                     <Lock size={11} /> Block
                   </button>
                 ) : null}
@@ -479,6 +341,7 @@ function TransactionsTab({ transactions, onRefresh }: { transactions: any[]; onR
         })}
       </div>
 
+      {/* Block confirm modal */}
       {blockTx && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', backdropFilter: 'blur(4px)', zIndex: 9300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
           onClick={e => e.target === e.currentTarget && setBlockTx(null)}>
@@ -488,11 +351,9 @@ function TransactionsTab({ transactions, onRefresh }: { transactions: any[]; onR
               <p style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', margin: 0 }}>Ref: <strong style={{ color: '#fff', fontFamily: 'monospace' }}>{blockTx.referenceNumber}</strong></p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <label style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.45)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Reason</label>
+              <Lbl text="Reason" />
               <input value={reason} onChange={e => setReason(e.target.value)} placeholder="Reason for blocking…"
-                style={{ width: '100%', background: '#1a2235', border: '1px solid rgba(255,255,255,.1)', borderRadius: 10, padding: '10px 13px', fontSize: 13, color: '#fff', outline: 'none', fontFamily: 'inherit', WebkitTextFillColor: '#fff', boxSizing: 'border-box' }}
-                onFocus={e => (e.target.style.borderColor = 'rgba(239,68,68,.5)')}
-                onBlur={e  => (e.target.style.borderColor = 'rgba(255,255,255,.1)')} />
+                style={inp} onFocus={fgR} onBlur={blr} />
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={() => { setBlockTx(null); setReason(''); }} style={{ flex: 1, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10, padding: '10px', fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,.5)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
@@ -505,21 +366,248 @@ function TransactionsTab({ transactions, onRefresh }: { transactions: any[]; onR
           </div>
         </div>
       )}
+
+      {/* Edit modal */}
+      {editTx && (
+        <TxEditModal
+          tx={editTx}
+          onClose={() => setEditTx(null)}
+          onDone={() => { setEditTx(null); onRefresh(); }}
+        />
+      )}
     </>
+  );
+}
+
+// ─── Reset Password Modal ─────────────────────────────────────────────────────
+function ResetPasswordModal({ user, onClose, onDone }: { user: AdminUserRecord; onClose: () => void; onDone: () => void }) {
+  const [newPassword,  setNewPassword]  = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading,      setLoading]      = useState(false);
+  const [err,          setErr]          = useState('');
+  const [ok,           setOk]           = useState('');
+
+  const checks = {
+    length:    newPassword.length >= 8,
+    uppercase: /[A-Z]/.test(newPassword),
+    number:    /[0-9]/.test(newPassword),
+    special:   /[\W_]/.test(newPassword),
+  };
+  const strong     = Object.values(checks).every(Boolean);
+  const scoreColor = strong ? '#34d399' : newPassword.length > 0 ? '#f59e0b' : 'rgba(255,255,255,.2)';
+
+  const submit = async () => {
+    setErr(''); setOk('');
+    if (!newPassword) return setErr('Enter a new password');
+    if (newPassword.length < 8) return setErr('Password must be at least 8 characters');
+    setLoading(true);
+    try {
+      await adminApi.patch(`/admin/users/${user._id}/reset-password`, { newPassword });
+      setOk(`Password reset for @${user.username}`);
+      setTimeout(() => { onDone(); onClose(); }, 1500);
+    } catch (e: any) { setErr(e?.response?.data?.message || 'Failed to reset password'); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.82)', backdropFilter: 'blur(8px)', zIndex: 9300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ background: '#111826', border: '1px solid rgba(255,255,255,.1)', borderRadius: 18, padding: '24px 22px', width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <h3 style={{ fontSize: 16, fontWeight: 800, color: '#fff', margin: '0 0 4px' }}>Reset Password</h3>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,.38)', margin: 0 }}>@{user.username} · {user.email}</p>
+          </div>
+          <button onClick={onClose} style={{ background: 'rgba(255,255,255,.06)', border: 'none', borderRadius: 8, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.4)', cursor: 'pointer', flexShrink: 0, marginLeft: 8 }}><X size={14} /></button>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, background: 'rgba(245,158,11,.08)', border: '1px solid rgba(245,158,11,.2)', borderRadius: 10, padding: '11px 13px' }}>
+          <AlertCircle size={14} color="#f59e0b" style={{ flexShrink: 0, marginTop: 1 }} />
+          <p style={{ fontSize: 12, color: 'rgba(245,158,11,.85)', margin: 0, lineHeight: 1.6 }}>User must use this new password on their next login. This action is logged.</p>
+        </div>
+        {err && <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(239,68,68,.09)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 10, padding: '10px 13px' }}><AlertCircle size={13} color="#f87171" /><span style={{ fontSize: 13, color: '#fca5a5' }}>{err}</span></div>}
+        {ok  && <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(52,211,153,.09)', border: '1px solid rgba(52,211,153,.2)', borderRadius: 10, padding: '10px 13px' }}><Key size={13} color="#34d399" /><span style={{ fontSize: 13, color: '#6ee7b7' }}>{ok}</span></div>}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <Lbl text="New Password" />
+          <div style={{ position: 'relative' }}>
+            <input type={showPassword ? 'text' : 'password'} value={newPassword} onChange={e => setNewPassword(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && submit()} placeholder="Min. 8 characters" autoFocus
+              style={{ ...inp, paddingRight: 40 }}
+              onFocus={e => (e.target.style.borderColor = 'rgba(245,158,11,.5)')}
+              onBlur={e  => (e.target.style.borderColor = 'rgba(255,255,255,.1)')} />
+            <button type="button" tabIndex={-1} onMouseDown={e => e.preventDefault()} onClick={() => setShowPassword(v => !v)}
+              style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,.35)', cursor: 'pointer', padding: 0, display: 'flex' }}>
+              {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+            </button>
+          </div>
+          {newPassword.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px 10px', marginTop: 4 }}>
+              {[{ ok: checks.length, label: '8+ characters' }, { ok: checks.uppercase, label: 'Uppercase (A–Z)' }, { ok: checks.number, label: 'Number (0–9)' }, { ok: checks.special, label: 'Special char' }].map(({ ok: c, label }) => (
+                <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: c ? '#34d399' : 'rgba(255,255,255,.3)' }}>{c ? '✓' : '○'} {label}</span>
+              ))}
+            </div>
+          )}
+          {newPassword.length > 0 && (
+            <div style={{ height: 3, background: 'rgba(255,255,255,.07)', borderRadius: 2, overflow: 'hidden', marginTop: 4 }}>
+              <div style={{ height: '100%', borderRadius: 2, background: scoreColor, width: `${Object.values(checks).filter(Boolean).length * 25}%`, transition: 'width .3s,background .3s' }} />
+            </div>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={onClose} style={{ flex: 1, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10, padding: '11px', fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,.5)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+          <button onClick={submit} disabled={loading || !newPassword || !strong}
+            style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, background: !newPassword || !strong ? 'rgba(245,158,11,.3)' : 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#050d1a', border: 'none', borderRadius: 10, padding: '11px', fontSize: 13, fontWeight: 700, cursor: loading || !newPassword || !strong ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: loading ? .6 : 1 }}>
+            {loading ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Key size={13} />}
+            Reset Password
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Credit Score Modal ───────────────────────────────────────────────────────
+function CreditModal({ user, onClose, onDone }: { user: AdminUserRecord; onClose: () => void; onDone: () => void }) {
+  const [score,   setScore]   = useState(String(user.creditScore ?? 300));
+  const [rating,  setRating]  = useState(user.creditRating ?? 'no_history');
+  const [loading, setLoading] = useState(false);
+  const [err,     setErr]     = useState('');
+  const n          = parseInt(score) || 300;
+  const scoreColor = n >= 750 ? '#34d399' : n >= 670 ? '#f59e0b' : '#f87171';
+
+  const submit = async () => {
+    if (isNaN(n) || n < 300 || n > 850) return setErr('Score must be between 300 and 850');
+    setLoading(true);
+    try { await adminApi.patch(`/admin/users/${user._id}/credit-score`, { score: n, rating }); onDone(); onClose(); }
+    catch (e: any) { setErr(e.response?.data?.message || 'Failed to update'); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.8)', backdropFilter: 'blur(6px)', zIndex: 9200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ background: '#111826', border: '1px solid rgba(255,255,255,.1)', borderRadius: 18, padding: '24px 22px', width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ fontSize: 16, fontWeight: 800, color: '#fff', margin: 0 }}>Update Credit Score</h3>
+          <button onClick={onClose} style={{ background: 'rgba(255,255,255,.06)', border: 'none', borderRadius: 8, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.4)', cursor: 'pointer' }}><X size={14} /></button>
+        </div>
+        <div style={{ textAlign: 'center', padding: '8px 0' }}>
+          <div style={{ fontSize: 52, fontWeight: 900, color: scoreColor, fontFamily: 'monospace', letterSpacing: '-2px', lineHeight: 1 }}>{score || '—'}</div>
+          <div style={{ height: 6, background: 'rgba(255,255,255,.07)', borderRadius: 3, overflow: 'hidden', margin: '12px 0 0' }}>
+            <div style={{ height: '100%', width: `${Math.max(0, Math.min(100, (n - 300) / 550 * 100))}%`, background: scoreColor, borderRadius: 3, transition: 'width .3s ease' }} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'rgba(255,255,255,.25)', marginTop: 3 }}><span>300</span><span>850</span></div>
+        </div>
+        {err && <div style={{ fontSize: 12, color: '#f87171', background: 'rgba(239,68,68,.09)', borderRadius: 8, padding: '8px 12px' }}>{err}</div>}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <Lbl text="Score (300–850)" />
+          <input type="number" min={300} max={850} value={score} onChange={e => setScore(e.target.value)} style={inp}
+            onFocus={e => (e.target.style.borderColor = 'rgba(245,158,11,.5)')} onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,.1)')} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <Lbl text="Rating" />
+          <select value={rating} onChange={e => setRating(e.target.value)} style={{ ...inp, appearance: 'none', cursor: 'pointer' }}
+            onFocus={e => (e.target.style.borderColor = 'rgba(245,158,11,.5)')} onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,.1)')}>
+            <option value="excellent">Excellent (750–850)</option>
+            <option value="good">Good (670–749)</option>
+            <option value="fair">Fair (580–669)</option>
+            <option value="poor">Poor (300–579)</option>
+            <option value="no_history">No History</option>
+          </select>
+        </div>
+        <button onClick={submit} disabled={loading}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#050d1a', border: 'none', borderRadius: 12, padding: '12px', fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: loading ? .6 : 1 }}>
+          {loading && <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />}
+          <BarChart3 size={14} /> Update Score
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Create User Modal ────────────────────────────────────────────────────────
+function CreateUserModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const [f, setF] = useState({ username: '', email: '', password: '', firstName: '', lastName: '', phoneNumber: '', role: 'user', skipEmailVerification: false, skipKyc: false });
+  const [loading, setLoading] = useState(false);
+  const [err,     setErr]     = useState('');
+  const [showPw,  setShowPw]  = useState(false);
+  const upd = (k: string, v: any) => setF(p => ({ ...p, [k]: v }));
+
+  const submit = async () => {
+    setErr('');
+    if (!f.username || !f.email || !f.password) return setErr('Username, email and password are required');
+    setLoading(true);
+    try { await adminApi.post('/admin/users', f); onDone(); onClose(); }
+    catch (e: any) { setErr(e.response?.data?.message || 'Failed to create user'); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.8)', backdropFilter: 'blur(6px)', zIndex: 9100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ background: '#111826', border: '1px solid rgba(255,255,255,.1)', borderRadius: '20px 20px 0 0', padding: '24px 20px', width: '100%', maxWidth: 520, maxHeight: '92vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ fontSize: 17, fontWeight: 800, color: '#fff', margin: 0 }}>Create User</h3>
+          <button onClick={onClose} style={{ background: 'rgba(255,255,255,.06)', border: 'none', borderRadius: 8, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.4)', cursor: 'pointer' }}><X size={15} /></button>
+        </div>
+        {err && <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(239,68,68,.09)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 10, padding: '10px 13px' }}><AlertCircle size={13} color="#f87171" /><span style={{ fontSize: 13, color: '#fca5a5' }}>{err}</span></div>}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          {[{ k:'firstName',l:'First Name',p:'John' },{ k:'lastName',l:'Last Name',p:'Doe' },{ k:'username',l:'Username *',p:'john_doe' },{ k:'email',l:'Email *',p:'john@example.com' },{ k:'phoneNumber',l:'Phone',p:'+1 555 000 0000' }].map(({ k, l, p }) => (
+            <div key={k} style={{ display:'flex', flexDirection:'column', gap:5 }}>
+              <Lbl text={l} />
+              <input type="text" value={(f as any)[k]} onChange={e=>upd(k,e.target.value)} placeholder={p} style={inp}
+                onFocus={e=>(e.target.style.borderColor='rgba(245,158,11,.5)')} onBlur={e=>(e.target.style.borderColor='rgba(255,255,255,.1)')} />
+            </div>
+          ))}
+          <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+            <Lbl text="Password *" />
+            <div style={{ position:'relative' }}>
+              <input type={showPw?'text':'password'} value={f.password} onChange={e=>upd('password',e.target.value)} placeholder="SecurePass@123"
+                style={{ ...inp, paddingRight:38 }} onFocus={e=>(e.target.style.borderColor='rgba(245,158,11,.5)')} onBlur={e=>(e.target.style.borderColor='rgba(255,255,255,.1)')} />
+              <button type="button" tabIndex={-1} onMouseDown={e=>e.preventDefault()} onClick={()=>setShowPw(v=>!v)}
+                style={{ position:'absolute', right:11, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:'rgba(255,255,255,.35)', cursor:'pointer', padding:0, display:'flex' }}>
+                {showPw?<EyeOff size={15}/>:<Eye size={15}/>}
+              </button>
+            </div>
+          </div>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+          <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+            <Lbl text="Role" />
+            <select value={f.role} onChange={e=>upd('role',e.target.value)} style={{ ...inp, appearance:'none', cursor:'pointer' }}
+              onFocus={e=>(e.target.style.borderColor='rgba(245,158,11,.5)')} onBlur={e=>(e.target.style.borderColor='rgba(255,255,255,.1)')}>
+              <option value="user">User</option><option value="admin">Admin</option><option value="super_admin">Super Admin</option>
+            </select>
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {[{ key:'skipEmailVerification', label:'Skip email verification', color:'#f59e0b' }, { key:'skipKyc', label:'Auto-approve KYC', color:'#34d399', sub:'User gets full access instantly' }].map(({ key, label, color, sub }) => (
+              <label key={key} style={{ display:'flex', alignItems:'center', gap:9, cursor:'pointer', padding:'9px 13px', background:(f as any)[key]?`${color}08`:'rgba(255,255,255,.03)', border:`1px solid ${(f as any)[key]?`${color}30`:'rgba(255,255,255,.08)'}`, borderRadius:10, transition:'all .15s' }}>
+                <input type="checkbox" checked={(f as any)[key]} onChange={e=>upd(key,e.target.checked)} style={{ width:14, height:14, accentColor:color, cursor:'pointer' }} />
+                <div><span style={{ fontSize:12, color:(f as any)[key]?color:'rgba(255,255,255,.55)', fontWeight:600, display:'block' }}>{label}</span>{sub&&<span style={{ fontSize:10, color:'rgba(255,255,255,.3)', display:'block', marginTop:1 }}>{sub}</span>}</div>
+              </label>
+            ))}
+          </div>
+        </div>
+        <button onClick={submit} disabled={loading}
+          style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'linear-gradient(135deg,#f59e0b,#d97706)', color:'#050d1a', border:'none', borderRadius:12, padding:'13px', fontSize:14, fontWeight:700, cursor:loading?'not-allowed':'pointer', fontFamily:'inherit', opacity:loading?.6:1 }}>
+          {loading?<Loader2 size={15} style={{ animation:'spin 1s linear infinite' }}/>:<Plus size={15}/>}
+          Create User
+        </button>
+      </div>
+    </div>
   );
 }
 
 // ─── User Detail Modal ────────────────────────────────────────────────────────
 function UserDetailModal({ userId, onClose, onRefresh }: { userId: string; onClose: () => void; onRefresh: () => void }) {
-  const [data,            setData]            = useState<UserDetail | null>(null);
-  const [loading,         setLoading]         = useState(true);
-  const [tab,             setTab]             = useState<'overview' | 'accounts' | 'transactions' | 'loans'>('overview');
-  const [blockOpen,       setBlockOpen]       = useState(false);
-  const [reason,          setReason]          = useState('');
-  const [creditOpen,      setCreditOpen]      = useState(false);
-  const [resetPwdOpen,    setResetPwdOpen]    = useState(false);  // ← NEW
-  const [actLoading,      setActLoading]      = useState(false);
-  const [toast,           setToast]           = useState('');
+  const [data,         setData]         = useState<UserDetail | null>(null);
+  const [loading,      setLoading]      = useState(true);
+  const [tab,          setTab]          = useState<'overview'|'accounts'|'transactions'|'loans'>('overview');
+  const [blockOpen,    setBlockOpen]    = useState(false);
+  const [reason,       setReason]       = useState('');
+  const [creditOpen,   setCreditOpen]   = useState(false);
+  const [resetPwdOpen, setResetPwdOpen] = useState(false);
+  const [actLoading,   setActLoading]   = useState(false);
+  const [toast,        setToast]        = useState('');
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2800); };
 
@@ -530,7 +618,6 @@ function UserDetailModal({ userId, onClose, onRefresh }: { userId: string; onClo
       .catch(() => {})
       .finally(() => setLoading(false));
   };
-
   useEffect(() => { refresh(); }, [userId]);
 
   const user: AdminUserRecord | null = (data as any)?.user ?? null;
@@ -584,128 +671,100 @@ function UserDetailModal({ userId, onClose, onRefresh }: { userId: string; onClo
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {/* Block / Unblock login */}
             {user?.status === 'suspended'
-              ? <button onClick={handleUnblock} disabled={actLoading} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(52,211,153,.1)', border: '1px solid rgba(52,211,153,.25)', borderRadius: 9, padding: '7px 12px', fontSize: 12, fontWeight: 700, color: '#34d399', cursor: 'pointer', fontFamily: 'inherit' }}>
-                  <Unlock size={13} /> Unblock Login
-                </button>
-              : <button onClick={() => setBlockOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.25)', borderRadius: 9, padding: '7px 12px', fontSize: 12, fontWeight: 700, color: '#f87171', cursor: 'pointer', fontFamily: 'inherit' }}>
-                  <Lock size={13} /> Block Login
-                </button>
+              ? <button onClick={handleUnblock} disabled={actLoading} style={{ display:'inline-flex',alignItems:'center',gap:6,background:'rgba(52,211,153,.1)',border:'1px solid rgba(52,211,153,.25)',borderRadius:9,padding:'7px 12px',fontSize:12,fontWeight:700,color:'#34d399',cursor:'pointer',fontFamily:'inherit' }}><Unlock size={13}/> Unblock Login</button>
+              : <button onClick={() => setBlockOpen(true)} style={{ display:'inline-flex',alignItems:'center',gap:6,background:'rgba(239,68,68,.1)',border:'1px solid rgba(239,68,68,.25)',borderRadius:9,padding:'7px 12px',fontSize:12,fontWeight:700,color:'#f87171',cursor:'pointer',fontFamily:'inherit' }}><Lock size={13}/> Block Login</button>
             }
-            {/* Block / Unblock transfers */}
             <button onClick={handleToggleTransferBlock} disabled={actLoading}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: user?.transferBlocked ? 'rgba(52,211,153,.1)' : 'rgba(245,158,11,.1)', border: `1px solid ${user?.transferBlocked ? 'rgba(52,211,153,.25)' : 'rgba(245,158,11,.25)'}`, borderRadius: 9, padding: '7px 12px', fontSize: 12, fontWeight: 700, color: user?.transferBlocked ? '#34d399' : '#f59e0b', cursor: 'pointer', fontFamily: 'inherit' }}>
-              {user?.transferBlocked ? <><Unlock size={13} /> Allow Transfers</> : <><Ban size={13} /> Block Transfers</>}
+              style={{ display:'inline-flex',alignItems:'center',gap:6,background:user?.transferBlocked?'rgba(52,211,153,.1)':'rgba(245,158,11,.1)',border:`1px solid ${user?.transferBlocked?'rgba(52,211,153,.25)':'rgba(245,158,11,.25)'}`,borderRadius:9,padding:'7px 12px',fontSize:12,fontWeight:700,color:user?.transferBlocked?'#34d399':'#f59e0b',cursor:'pointer',fontFamily:'inherit' }}>
+              {user?.transferBlocked ? <><Unlock size={13}/> Allow Transfers</> : <><Ban size={13}/> Block Transfers</>}
             </button>
-            {/* Reset Password ← NEW */}
             <button onClick={() => setResetPwdOpen(true)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(167,139,250,.1)', border: '1px solid rgba(167,139,250,.25)', borderRadius: 9, padding: '7px 12px', fontSize: 12, fontWeight: 700, color: '#a78bfa', cursor: 'pointer', fontFamily: 'inherit' }}>
-              <Key size={13} /> Reset Password
+              style={{ display:'inline-flex',alignItems:'center',gap:6,background:'rgba(167,139,250,.1)',border:'1px solid rgba(167,139,250,.25)',borderRadius:9,padding:'7px 12px',fontSize:12,fontWeight:700,color:'#a78bfa',cursor:'pointer',fontFamily:'inherit' }}>
+              <Key size={13}/> Reset Password
             </button>
-            {/* Credit score */}
-            <button onClick={() => setCreditOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(96,165,250,.1)', border: '1px solid rgba(96,165,250,.25)', borderRadius: 9, padding: '7px 12px', fontSize: 12, fontWeight: 700, color: '#60a5fa', cursor: 'pointer', fontFamily: 'inherit' }}>
-              <BarChart3 size={13} /> Credit Score
+            <button onClick={() => setCreditOpen(true)}
+              style={{ display:'inline-flex',alignItems:'center',gap:6,background:'rgba(96,165,250,.1)',border:'1px solid rgba(96,165,250,.25)',borderRadius:9,padding:'7px 12px',fontSize:12,fontWeight:700,color:'#60a5fa',cursor:'pointer',fontFamily:'inherit' }}>
+              <BarChart3 size={13}/> Credit Score
             </button>
-            <button onClick={onClose} style={{ background: 'rgba(255,255,255,.06)', border: 'none', borderRadius: 8, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.4)', cursor: 'pointer' }}><X size={15} /></button>
+            <button onClick={onClose} style={{ background:'rgba(255,255,255,.06)',border:'none',borderRadius:8,width:30,height:30,display:'flex',alignItems:'center',justifyContent:'center',color:'rgba(255,255,255,.4)',cursor:'pointer' }}><X size={15}/></button>
           </div>
         </div>
 
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: 2, padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,.06)', flexShrink: 0, overflowX: 'auto' }}>
-          {(['overview', 'accounts', 'transactions', 'loans'] as const).map(t => (
+        <div style={{ display:'flex', gap:2, padding:'10px 16px', borderBottom:'1px solid rgba(255,255,255,.06)', flexShrink:0, overflowX:'auto' }}>
+          {(['overview','accounts','transactions','loans'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
-              style={{ padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, background: tab === t ? 'rgba(245,158,11,.12)' : 'transparent', color: tab === t ? '#f59e0b' : 'rgba(255,255,255,.4)', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textTransform: 'capitalize', whiteSpace: 'nowrap' }}>
-              {t}{t !== 'overview' ? ` (${(data as any)?.[t]?.length ?? 0})` : ''}
+              style={{ padding:'6px 14px', borderRadius:8, fontSize:12, fontWeight:700, background:tab===t?'rgba(245,158,11,.12)':'transparent', color:tab===t?'#f59e0b':'rgba(255,255,255,.4)', border:'none', cursor:'pointer', fontFamily:'inherit', textTransform:'capitalize', whiteSpace:'nowrap' }}>
+              {t}{t!=='overview'?` (${(data as any)?.[t]?.length??0})`:''}
             </button>
           ))}
         </div>
 
         {/* Content */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '18px 20px' }}>
+        <div style={{ flex:1, overflowY:'auto', padding:'18px 20px' }}>
           {loading ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 220, gap: 10, color: 'rgba(255,255,255,.35)' }}>
-              <Loader2 size={20} color="#f59e0b" style={{ animation: 'spin 1s linear infinite' }} /> Loading…
+            <div style={{ display:'flex',alignItems:'center',justifyContent:'center',minHeight:220,gap:10,color:'rgba(255,255,255,.35)' }}>
+              <Loader2 size={20} color="#f59e0b" style={{ animation:'spin 1s linear infinite' }}/> Loading…
             </div>
           ) : !user ? (
-            <div style={{ textAlign: 'center', color: 'rgba(255,255,255,.3)', padding: 40 }}>Failed to load user details</div>
+            <div style={{ textAlign:'center',color:'rgba(255,255,255,.3)',padding:40 }}>Failed to load user details</div>
           ) : tab === 'overview' ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <Pill label={user.status} {...(STATUS_CFG[user.status] ?? STATUS_CFG.pending)} />
-                {user.transferBlocked && <Pill label="Transfers Blocked" bg="rgba(239,68,68,.12)" color="#f87171" />}
-                {(() => {
-                  const liveKyc = data?.kyc?.status ?? user.kycStatus ?? 'not_started';
-                  return <Pill label={`KYC: ${liveKyc.replace(/_/g, ' ')}`} {...(KYC_CFG[liveKyc] ?? KYC_CFG.not_started)} />;
-                })()}
-                {user.emailVerified && <Pill label="Email verified" bg="rgba(52,211,153,.1)" color="#34d399" />}
-                {user.twoFactorEnabled && <Pill label="2FA enabled" bg="rgba(96,165,250,.1)" color="#60a5fa" />}
-                <Pill label={user.role.replace(/_/g, ' ')} bg="rgba(245,158,11,.1)" color="#f59e0b" />
+            <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+              <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                <Pill label={user.status} {...(STATUS_CFG[user.status]??STATUS_CFG.pending)} />
+                {user.transferBlocked && <Pill label="Transfers Blocked" bg="rgba(239,68,68,.12)" color="#f87171"/>}
+                {(() => { const k = data?.kyc?.status ?? user.kycStatus ?? 'not_started'; return <Pill label={`KYC: ${k.replace(/_/g,' ')}`} {...(KYC_CFG[k]??KYC_CFG.not_started)}/>; })()}
+                {user.emailVerified   && <Pill label="Email verified" bg="rgba(52,211,153,.1)"  color="#34d399"/>}
+                {user.twoFactorEnabled && <Pill label="2FA enabled"   bg="rgba(96,165,250,.1)"  color="#60a5fa"/>}
+                <Pill label={user.role.replace(/_/g,' ')} bg="rgba(245,158,11,.1)" color="#f59e0b"/>
               </div>
-
               <div className="det-grid">
                 {[
-                  { Icon: Mail,       label: 'Email',        value: user.email },
-                  { Icon: Lock, label: 'Password Hash', value: user.passwordHash ?? '—' },
-                  { Icon: Phone,      label: 'Phone',        value: user.phoneNumber ?? '—' },
-                  { Icon: Calendar,   label: 'Member Since', value: formatDate(user.createdAt) },
-                  { Icon: Calendar,   label: 'Last Login',   value: user.lastLoginAt ? formatDateTime(user.lastLoginAt) : '—' },
-                  { Icon: MapPin,     label: 'Address',      value: [user.address, user.city, user.state, user.zipCode].filter(Boolean).join(', ') || '—' },
-                  { Icon: CreditCard, label: 'Currency',     value: user.preferredCurrency ?? 'USD' },
+                  { Icon:Mail,       label:'Email',        value:user.email },
+                  { Icon:Lock,       label:'Password Hash',value:user.passwordHash??'—' },
+                  { Icon:Phone,      label:'Phone',        value:user.phoneNumber??'—' },
+                  { Icon:Calendar,   label:'Member Since', value:formatDate(user.createdAt) },
+                  { Icon:Calendar,   label:'Last Login',   value:user.lastLoginAt?formatDateTime(user.lastLoginAt):'—' },
+                  { Icon:MapPin,     label:'Address',      value:[user.address,user.city,user.state,user.zipCode].filter(Boolean).join(', ')||'—' },
+                  { Icon:CreditCard, label:'Currency',     value:user.preferredCurrency??'USD' },
                 ].map(({ Icon, label, value }) => (
-                  <div key={label} style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.06)', borderRadius: 10, padding: '11px 13px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                    <Icon size={14} color="#f59e0b" style={{ flexShrink: 0, marginTop: 1 }} />
+                  <div key={label} style={{ background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.06)',borderRadius:10,padding:'11px 13px',display:'flex',gap:10,alignItems:'flex-start' }}>
+                    <Icon size={14} color="#f59e0b" style={{ flexShrink:0,marginTop:1 }}/>
                     <div>
-                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em' }}>{label}</div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: '#fff', marginTop: 2, wordBreak: 'break-word' }}>{value}</div>
+                      <div style={{ fontSize:10,color:'rgba(255,255,255,.35)',fontWeight:600,textTransform:'uppercase',letterSpacing:'.04em' }}>{label}</div>
+                      <div style={{ fontSize:12,fontWeight:600,color:'#fff',marginTop:2,wordBreak:'break-word' }}>{value}</div>
                     </div>
                   </div>
                 ))}
               </div>
-
-              <div style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.06)', borderRadius: 12, padding: '14px 16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.55)' }}>Credit Score</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 22, fontWeight: 900, fontFamily: 'monospace', color: user.creditScore >= 750 ? '#34d399' : user.creditScore >= 670 ? '#f59e0b' : '#f87171' }}>{user.creditScore}</span>
-                    <Pill label={user.creditRating.replace(/_/g, ' ')} bg="rgba(245,158,11,.1)" color="#f59e0b" />
+              <div style={{ background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.06)',borderRadius:12,padding:'14px 16px' }}>
+                <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10 }}>
+                  <span style={{ fontSize:12,fontWeight:700,color:'rgba(255,255,255,.55)' }}>Credit Score</span>
+                  <div style={{ display:'flex',alignItems:'center',gap:8 }}>
+                    <span style={{ fontSize:22,fontWeight:900,fontFamily:'monospace',color:user.creditScore>=750?'#34d399':user.creditScore>=670?'#f59e0b':'#f87171' }}>{user.creditScore}</span>
+                    <Pill label={user.creditRating.replace(/_/g,' ')} bg="rgba(245,158,11,.1)" color="#f59e0b"/>
                   </div>
                 </div>
-                <div style={{ height: 6, background: 'rgba(255,255,255,.07)', borderRadius: 3, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${(user.creditScore - 300) / 550 * 100}%`, background: user.creditScore >= 750 ? '#34d399' : user.creditScore >= 670 ? '#f59e0b' : '#f87171', borderRadius: 3 }} />
+                <div style={{ height:6,background:'rgba(255,255,255,.07)',borderRadius:3,overflow:'hidden' }}>
+                  <div style={{ height:'100%',width:`${(user.creditScore-300)/550*100}%`,background:user.creditScore>=750?'#34d399':user.creditScore>=670?'#f59e0b':'#f87171',borderRadius:3 }}/>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'rgba(255,255,255,.25)', marginTop: 3 }}><span>300</span><span>850</span></div>
+                <div style={{ display:'flex',justifyContent:'space-between',fontSize:10,color:'rgba(255,255,255,.25)',marginTop:3 }}><span>300</span><span>850</span></div>
               </div>
-
               {data?.kyc && (
-                <div style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.06)', borderRadius: 12, padding: '14px 16px' }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.55)', marginBottom: 10 }}>KYC Document</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12 }}>
-                    {[
-                      { l: 'Document Type',   v: data.kyc.documentType?.replace(/_/g, ' ') ?? '—' },
-                      { l: 'Document Number', v: data.kyc.documentNumber ?? '—' },
-                      { l: 'Status',          v: data.kyc.status ?? '—' },
-                      { l: 'Submitted',       v: data.kyc.createdAt ? formatDate(data.kyc.createdAt) : '—' },
-                      { l: 'Reviewed At',     v: data.kyc.reviewedAt ? formatDate(data.kyc.reviewedAt) : '—' },
-                      { l: 'Expiry Date',     v: data.kyc.expiryDate ? formatDate(data.kyc.expiryDate) : '—' },
-                    ].map(({ l, v }) => (
-                      <div key={l}>
-                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em' }}>{l}</div>
-                        <div style={{ color: '#fff', fontWeight: 600, marginTop: 2, textTransform: 'capitalize' }}>{v}</div>
-                      </div>
+                <div style={{ background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.06)',borderRadius:12,padding:'14px 16px' }}>
+                  <div style={{ fontSize:12,fontWeight:700,color:'rgba(255,255,255,.55)',marginBottom:10 }}>KYC Document</div>
+                  <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,fontSize:12 }}>
+                    {[{ l:'Document Type',v:data.kyc.documentType?.replace(/_/g,' ')??'—' },{ l:'Document Number',v:data.kyc.documentNumber??'—' },{ l:'Status',v:data.kyc.status??'—' },{ l:'Submitted',v:data.kyc.createdAt?formatDate(data.kyc.createdAt):'—' },{ l:'Reviewed At',v:data.kyc.reviewedAt?formatDate(data.kyc.reviewedAt):'—' },{ l:'Expiry Date',v:data.kyc.expiryDate?formatDate(data.kyc.expiryDate):'—' }].map(({ l,v })=>(
+                      <div key={l}><div style={{ fontSize:10,color:'rgba(255,255,255,.35)',fontWeight:600,textTransform:'uppercase',letterSpacing:'.04em' }}>{l}</div><div style={{ color:'#fff',fontWeight:600,marginTop:2,textTransform:'capitalize' }}>{v}</div></div>
                     ))}
                   </div>
-                  {data.kyc.rejectionNote && (
-                    <div style={{ marginTop: 10, background: 'rgba(239,68,68,.08)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 8, padding: '8px 12px' }}>
-                      <div style={{ fontSize: 10, color: '#f87171', fontWeight: 700, textTransform: 'uppercase', marginBottom: 3 }}>Rejection Note</div>
-                      <div style={{ fontSize: 12, color: '#fca5a5' }}>{data.kyc.rejectionNote}</div>
-                    </div>
-                  )}
-                  {(data.kyc.frontImageUrl || data.kyc.selfieUrl) && (
-                    <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-                      {data.kyc.frontImageUrl && <a href={data.kyc.frontImageUrl} target="_blank" rel="noreferrer" style={{ fontSize: 11, fontWeight: 600, color: '#60a5fa', textDecoration: 'none' }}>📄 View ID Front</a>}
-                      {data.kyc.backImageUrl  && <a href={data.kyc.backImageUrl}  target="_blank" rel="noreferrer" style={{ fontSize: 11, fontWeight: 600, color: '#60a5fa', textDecoration: 'none' }}>📄 View ID Back</a>}
-                      {data.kyc.selfieUrl     && <a href={data.kyc.selfieUrl}     target="_blank" rel="noreferrer" style={{ fontSize: 11, fontWeight: 600, color: '#60a5fa', textDecoration: 'none' }}>🤳 View Selfie</a>}
+                  {data.kyc.rejectionNote && <div style={{ marginTop:10,background:'rgba(239,68,68,.08)',border:'1px solid rgba(239,68,68,.2)',borderRadius:8,padding:'8px 12px' }}><div style={{ fontSize:10,color:'#f87171',fontWeight:700,textTransform:'uppercase',marginBottom:3 }}>Rejection Note</div><div style={{ fontSize:12,color:'#fca5a5' }}>{data.kyc.rejectionNote}</div></div>}
+                  {(data.kyc.frontImageUrl||data.kyc.selfieUrl) && (
+                    <div style={{ display:'flex',gap:8,marginTop:10,flexWrap:'wrap' }}>
+                      {data.kyc.frontImageUrl&&<a href={data.kyc.frontImageUrl} target="_blank" rel="noreferrer" style={{ fontSize:11,fontWeight:600,color:'#60a5fa',textDecoration:'none' }}>📄 View ID Front</a>}
+                      {data.kyc.backImageUrl &&<a href={data.kyc.backImageUrl}  target="_blank" rel="noreferrer" style={{ fontSize:11,fontWeight:600,color:'#60a5fa',textDecoration:'none' }}>📄 View ID Back</a>}
+                      {data.kyc.selfieUrl    &&<a href={data.kyc.selfieUrl}     target="_blank" rel="noreferrer" style={{ fontSize:11,fontWeight:600,color:'#60a5fa',textDecoration:'none' }}>🤳 View Selfie</a>}
                     </div>
                   )}
                 </div>
@@ -713,59 +772,60 @@ function UserDetailModal({ userId, onClose, onRefresh }: { userId: string; onClo
             </div>
 
           ) : tab === 'accounts' ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {!data?.accounts?.length ? (
-                <div style={{ textAlign: 'center', color: 'rgba(255,255,255,.3)', padding: 40, fontSize: 13 }}>No accounts found</div>
-              ) : data.accounts.map((acc: any) => (
-                <div key={acc._id} style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 12, padding: '13px 15px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', textTransform: 'capitalize' }}>{acc.nickname || acc.accountType?.replace(/_/g, ' ')}</div>
-                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', fontFamily: 'monospace' }}>••••{acc.accountNumber?.slice(-4)} · {acc.currency}</div>
+            <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
+              {!data?.accounts?.length
+                ? <div style={{ textAlign:'center',color:'rgba(255,255,255,.3)',padding:40,fontSize:13 }}>No accounts found</div>
+                : data.accounts.map((acc:any) => (
+                  <div key={acc._id} style={{ background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.07)',borderRadius:12,padding:'13px 15px' }}>
+                    <div style={{ display:'flex',justifyContent:'space-between',marginBottom:8 }}>
+                      <div>
+                        <div style={{ fontSize:13,fontWeight:700,color:'#fff',textTransform:'capitalize' }}>{acc.nickname||acc.accountType?.replace(/_/g,' ')}</div>
+                        <div style={{ fontSize:11,color:'rgba(255,255,255,.35)',fontFamily:'monospace' }}>••••{acc.accountNumber?.slice(-4)} · {acc.currency}</div>
+                      </div>
+                      <div style={{ textAlign:'right' }}>
+                        <div style={{ fontSize:16,fontWeight:800,color:'#fff',fontFamily:'monospace' }}>{fmtC(acc.balance,acc.currency)}</div>
+                        <Pill label={acc.status} {...(STATUS_CFG[acc.status]??STATUS_CFG.pending)}/>
+                      </div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', fontFamily: 'monospace' }}>{fmtC(acc.balance, acc.currency)}</div>
-                      <Pill label={acc.status} {...(STATUS_CFG[acc.status] ?? STATUS_CFG.pending)} />
+                    <div style={{ display:'flex',gap:14,fontSize:11,flexWrap:'wrap' }}>
+                      <span style={{ color:'rgba(255,255,255,.35)' }}>Deposited: <strong style={{ color:'#34d399' }}>{fmtC(acc.totalDeposited,acc.currency)}</strong></span>
+                      <span style={{ color:'rgba(255,255,255,.35)' }}>Withdrawn: <strong style={{ color:'#f87171' }}>{fmtC(acc.totalWithdrawn,acc.currency)}</strong></span>
+                      {acc.isPrimary&&<Pill label="Primary" bg="rgba(245,158,11,.1)" color="#f59e0b"/>}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 14, fontSize: 11, flexWrap: 'wrap' }}>
-                    <span style={{ color: 'rgba(255,255,255,.35)' }}>Deposited: <strong style={{ color: '#34d399' }}>{fmtC(acc.totalDeposited, acc.currency)}</strong></span>
-                    <span style={{ color: 'rgba(255,255,255,.35)' }}>Withdrawn: <strong style={{ color: '#f87171' }}>{fmtC(acc.totalWithdrawn, acc.currency)}</strong></span>
-                    {acc.isPrimary && <Pill label="Primary" bg="rgba(245,158,11,.1)" color="#f59e0b" />}
-                  </div>
-                </div>
-              ))}
+                ))
+              }
             </div>
 
           ) : tab === 'transactions' ? (
-            <TransactionsTab transactions={data?.transactions ?? []} onRefresh={refresh} />
+            <TransactionsTab transactions={data?.transactions??[]} onRefresh={refresh}/>
 
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {!data?.loans?.length ? (
-                <div style={{ textAlign: 'center', color: 'rgba(255,255,255,.3)', padding: 40, fontSize: 13 }}>No loans found</div>
-              ) : data.loans.map((loan: any) => (
-                <div key={loan._id} style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 12, padding: '13px 15px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', textTransform: 'capitalize' }}>{loan.loanType?.replace(/_/g, ' ') ?? 'Loan'}</div>
-                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)' }}>{loan.termMonths} months · {loan.interestRate}% p.a.</div>
+            <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
+              {!data?.loans?.length
+                ? <div style={{ textAlign:'center',color:'rgba(255,255,255,.3)',padding:40,fontSize:13 }}>No loans found</div>
+                : data.loans.map((loan:any) => (
+                  <div key={loan._id} style={{ background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.07)',borderRadius:12,padding:'13px 15px' }}>
+                    <div style={{ display:'flex',justifyContent:'space-between',marginBottom:6 }}>
+                      <div>
+                        <div style={{ fontSize:13,fontWeight:700,color:'#fff',textTransform:'capitalize' }}>{loan.loanType?.replace(/_/g,' ')??'Loan'}</div>
+                        <div style={{ fontSize:11,color:'rgba(255,255,255,.35)' }}>{loan.termMonths} months · {loan.interestRate}% p.a.</div>
+                      </div>
+                      <div style={{ textAlign:'right' }}>
+                        <div style={{ fontSize:15,fontWeight:800,color:'#fff',fontFamily:'monospace' }}>{fmtC(loan.requestedAmount)}</div>
+                        <Pill label={loan.status} {...(STATUS_CFG[loan.status]??{ bg:'rgba(148,163,184,.1)',color:'#94a3b8' })}/>
+                      </div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', fontFamily: 'monospace' }}>{fmtC(loan.requestedAmount)}</div>
-                      <Pill label={loan.status} {...(STATUS_CFG[loan.status] ?? { bg: 'rgba(148,163,184,.1)', color: '#94a3b8' })} />
-                    </div>
+                    {loan.purpose&&<div style={{ fontSize:11,color:'rgba(255,255,255,.35)' }}>Purpose: {loan.purpose}</div>}
                   </div>
-                  {loan.purpose && <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)' }}>Purpose: {loan.purpose}</div>}
-                </div>
-              ))}
+                ))
+              }
             </div>
           )}
         </div>
 
-        {/* Toast */}
         {toast && (
-          <div style={{ position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', background: '#111826', border: '1px solid rgba(255,255,255,.12)', borderRadius: 10, padding: '10px 18px', fontSize: 13, fontWeight: 600, color: '#34d399', whiteSpace: 'nowrap', boxShadow: '0 8px 30px rgba(0,0,0,.4)', zIndex: 10 }}>
+          <div style={{ position:'absolute',bottom:16,left:'50%',transform:'translateX(-50%)',background:'#111826',border:'1px solid rgba(255,255,255,.12)',borderRadius:10,padding:'10px 18px',fontSize:13,fontWeight:600,color:'#34d399',whiteSpace:'nowrap',boxShadow:'0 8px 30px rgba(0,0,0,.4)',zIndex:10 }}>
             ✓ {toast}
           </div>
         )}
@@ -773,38 +833,30 @@ function UserDetailModal({ userId, onClose, onRefresh }: { userId: string; onClo
 
       {/* Block confirm */}
       {blockOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', backdropFilter: 'blur(4px)', zIndex: 9200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
-          onClick={e => e.target === e.currentTarget && setBlockOpen(false)}>
-          <div style={{ background: '#111826', border: '1px solid rgba(255,255,255,.1)', borderRadius: 18, padding: '22px 20px', width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 800, color: '#fff', margin: 0 }}>Block @{user?.username}?</h3>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', margin: 0 }}>They won't be able to log in or perform any actions.</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <Lbl text="Reason (optional)" />
-              <input value={reason} onChange={e => setReason(e.target.value)} placeholder="Reason for blocking…" style={inp}
-                onFocus={e => (e.target.style.borderColor = 'rgba(239,68,68,.5)')}
-                onBlur={e  => (e.target.style.borderColor = 'rgba(255,255,255,.1)')} />
+        <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,.7)',backdropFilter:'blur(4px)',zIndex:9200,display:'flex',alignItems:'center',justifyContent:'center',padding:16 }}
+          onClick={e=>e.target===e.currentTarget&&setBlockOpen(false)}>
+          <div style={{ background:'#111826',border:'1px solid rgba(255,255,255,.1)',borderRadius:18,padding:'22px 20px',width:'100%',maxWidth:380,display:'flex',flexDirection:'column',gap:14 }}>
+            <h3 style={{ fontSize:16,fontWeight:800,color:'#fff',margin:0 }}>Block @{user?.username}?</h3>
+            <p style={{ fontSize:13,color:'rgba(255,255,255,.4)',margin:0 }}>They won't be able to log in or perform any actions.</p>
+            <div style={{ display:'flex',flexDirection:'column',gap:5 }}>
+              <Lbl text="Reason (optional)"/>
+              <input value={reason} onChange={e=>setReason(e.target.value)} placeholder="Reason for blocking…" style={inp}
+                onFocus={fgR} onBlur={blr}/>
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setBlockOpen(false)} style={{ flex: 1, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 10, padding: '10px', fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,.5)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+            <div style={{ display:'flex',gap:10 }}>
+              <button onClick={()=>setBlockOpen(false)} style={{ flex:1,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.08)',borderRadius:10,padding:'10px',fontSize:13,fontWeight:600,color:'rgba(255,255,255,.5)',cursor:'pointer',fontFamily:'inherit' }}>Cancel</button>
               <button onClick={handleBlock} disabled={actLoading}
-                style={{ flex: 1, background: 'linear-gradient(135deg,#dc2626,#b91c1c)', border: 'none', borderRadius: 10, padding: '10px', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: actLoading ? .6 : 1 }}>
-                {actLoading && <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />}
-                <Lock size={13} /> Block User
+                style={{ flex:1,background:'linear-gradient(135deg,#dc2626,#b91c1c)',border:'none',borderRadius:10,padding:'10px',fontSize:13,fontWeight:700,color:'#fff',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:6,opacity:actLoading?.6:1 }}>
+                {actLoading&&<Loader2 size={13} style={{ animation:'spin 1s linear infinite' }}/>}
+                <Lock size={13}/> Block User
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Credit modal */}
-      {creditOpen && user && (
-        <CreditModal user={user} onClose={() => setCreditOpen(false)} onDone={() => { refresh(); onRefresh(); }} />
-      )}
-
-      {/* Reset Password modal ← NEW */}
-      {resetPwdOpen && user && (
-        <ResetPasswordModal user={user} onClose={() => setResetPwdOpen(false)} onDone={() => { refresh(); onRefresh(); showToast('Password reset successfully'); }} />
-      )}
+      {creditOpen  && user && <CreditModal       user={user} onClose={()=>setCreditOpen(false)}   onDone={()=>{ refresh(); onRefresh(); }}/>}
+      {resetPwdOpen && user && <ResetPasswordModal user={user} onClose={()=>setResetPwdOpen(false)} onDone={()=>{ refresh(); onRefresh(); showToast('Password reset successfully'); }}/>}
     </div>
   );
 }
@@ -831,10 +883,7 @@ export default function AdminUsersPage() {
       if (st) params.status = st;
       const res = await adminApi.get('/admin/users', { params });
       const d   = res.data.data ?? res.data;
-      const regularUsers = (d.users ?? []).filter(
-        (u: AdminUserRecord) => u.role !== 'admin' && u.role !== 'super_admin'
-      );
-      setUsers(regularUsers);
+      setUsers((d.users ?? []).filter((u: AdminUserRecord) => u.role !== 'admin' && u.role !== 'super_admin'));
       setPagination(d.pagination ?? { total: 0, page: 1, limit: 20, pages: 1 });
     } catch {}
     finally { setLoading(false); }
@@ -848,28 +897,20 @@ export default function AdminUsersPage() {
     debounce.current = setTimeout(() => load(1, val, status), 420);
   };
 
-  const handleStatus = (val: string) => {
-    setStatus(val);
-    load(1, search, val);
-  };
-
   if (!mounted) return null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, fontFamily: 'Inter, system-ui, sans-serif' }}>
-
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontSize: 'clamp(18px,2.5vw,24px)', fontWeight: 800, color: '#fff', margin: '0 0 4px', letterSpacing: '-.4px' }}>Users</h1>
           <p style={{ fontSize: 13, color: 'rgba(255,255,255,.38)', margin: 0 }}>{pagination.total.toLocaleString()} total registered users</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => load(pagination.page)}
-            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 38, height: 38, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)', borderRadius: 10, color: 'rgba(255,255,255,.55)', cursor: 'pointer' }}>
+          <button onClick={() => load(pagination.page)} style={{ display:'inline-flex',alignItems:'center',justifyContent:'center',width:38,height:38,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.09)',borderRadius:10,color:'rgba(255,255,255,.55)',cursor:'pointer' }}>
             <RefreshCw size={14} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
           </button>
-          <button onClick={() => setShowCreate(true)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#050d1a', border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+          <button onClick={() => setShowCreate(true)} style={{ display:'inline-flex',alignItems:'center',gap:7,background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'#050d1a',border:'none',borderRadius:10,padding:'9px 16px',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>
             <Plus size={15} /> Create User
           </button>
         </div>
@@ -883,7 +924,7 @@ export default function AdminUsersPage() {
             onFocus={e => (e.target.style.borderColor = 'rgba(245,158,11,.4)')}
             onBlur={e  => (e.target.style.borderColor = 'rgba(255,255,255,.1)')} />
         </div>
-        <select value={status} onChange={e => handleStatus(e.target.value)}
+        <select value={status} onChange={e => { setStatus(e.target.value); load(1, search, e.target.value); }}
           style={{ ...inp, width: 'auto', minWidth: 150, appearance: 'none', cursor: 'pointer', paddingRight: 28 }}
           onFocus={e => (e.target.style.borderColor = 'rgba(245,158,11,.4)')}
           onBlur={e  => (e.target.style.borderColor = 'rgba(255,255,255,.1)')}>
@@ -897,22 +938,22 @@ export default function AdminUsersPage() {
 
       <div style={{ background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 18, overflow: 'hidden' }}>
         {loading && users.length === 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 280, gap: 10, color: 'rgba(255,255,255,.3)', fontSize: 13 }}>
-            <Loader2 size={20} color="#f59e0b" style={{ animation: 'spin 1s linear infinite' }} /> Loading users…
+          <div style={{ display:'flex',alignItems:'center',justifyContent:'center',minHeight:280,gap:10,color:'rgba(255,255,255,.3)',fontSize:13 }}>
+            <Loader2 size={20} color="#f59e0b" style={{ animation:'spin 1s linear infinite' }}/> Loading users…
           </div>
         ) : users.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 240, gap: 10 }}>
-            <User size={36} color="rgba(255,255,255,.1)" />
-            <p style={{ fontSize: 14, color: 'rgba(255,255,255,.3)', margin: 0 }}>No users found</p>
-            {search && <p style={{ fontSize: 12, color: 'rgba(255,255,255,.2)', margin: 0 }}>Try adjusting your search or filters</p>}
+          <div style={{ display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:240,gap:10 }}>
+            <User size={36} color="rgba(255,255,255,.1)"/>
+            <p style={{ fontSize:14,color:'rgba(255,255,255,.3)',margin:0 }}>No users found</p>
+            {search && <p style={{ fontSize:12,color:'rgba(255,255,255,.2)',margin:0 }}>Try adjusting your search or filters</p>}
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,.07)' }}>
-                  {['User', 'Status', 'KYC', 'Credit Score', 'Role', 'Joined', ''].map(h => (
-                    <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.06em', whiteSpace: 'nowrap' }}>{h}</th>
+                  {['User','Status','KYC','Credit Score','Role','Joined',''].map(h => (
+                    <th key={h} style={{ padding:'12px 16px',textAlign:'left',fontSize:10,fontWeight:700,color:'rgba(255,255,255,.35)',textTransform:'uppercase',letterSpacing:'.06em',whiteSpace:'nowrap' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -921,29 +962,29 @@ export default function AdminUsersPage() {
                   const sc = STATUS_CFG[u.status] ?? STATUS_CFG.pending;
                   const cc = u.creditScore >= 750 ? '#34d399' : u.creditScore >= 670 ? '#f59e0b' : '#f87171';
                   return (
-                    <tr key={u._id} style={{ borderBottom: '1px solid rgba(255,255,255,.04)', transition: 'background .15s' }}
-                      onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,.025)')}
-                      onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'transparent')}>
-                      <td style={{ padding: '12px 16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg,#f59e0b,#d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: '#050d1a', flexShrink: 0, overflow: 'hidden' }}>
-                            {u.profilePictureUrl ? <img src={u.profilePictureUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : ini(u.firstName, u.lastName)}
+                    <tr key={u._id} style={{ borderBottom:'1px solid rgba(255,255,255,.04)',transition:'background .15s' }}
+                      onMouseEnter={e=>((e.currentTarget as HTMLElement).style.background='rgba(255,255,255,.025)')}
+                      onMouseLeave={e=>((e.currentTarget as HTMLElement).style.background='transparent')}>
+                      <td style={{ padding:'12px 16px' }}>
+                        <div style={{ display:'flex',alignItems:'center',gap:10 }}>
+                          <div style={{ width:34,height:34,borderRadius:'50%',background:'linear-gradient(135deg,#f59e0b,#d97706)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,color:'#050d1a',flexShrink:0,overflow:'hidden' }}>
+                            {u.profilePictureUrl?<img src={u.profilePictureUrl} alt="" style={{ width:'100%',height:'100%',objectFit:'cover' }}/>:ini(u.firstName,u.lastName)}
                           </div>
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>{u.firstName} {u.lastName}</div>
-                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>{u.email}</div>
+                          <div style={{ minWidth:0 }}>
+                            <div style={{ fontWeight:700,color:'#fff',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:160 }}>{u.firstName} {u.lastName}</div>
+                            <div style={{ fontSize:11,color:'rgba(255,255,255,.35)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:160 }}>{u.email}</div>
                           </div>
                         </div>
                       </td>
-                      <td style={{ padding: '12px 16px' }}><Pill label={u.status} bg={sc.bg} color={sc.color} /></td>
-                      <td style={{ padding: '12px 16px' }}><Pill label={(u.kycStatus ?? 'not started').replace(/_/g, ' ')} {...(KYC_CFG[u.kycStatus] ?? KYC_CFG.not_started)} /></td>
-                      <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontWeight: 700, color: cc }}>{u.creditScore}</td>
-                      <td style={{ padding: '12px 16px' }}><Pill label={u.role.replace(/_/g, ' ')} bg="rgba(245,158,11,.1)" color="#f59e0b" /></td>
-                      <td style={{ padding: '12px 16px', color: 'rgba(255,255,255,.4)', fontSize: 12, whiteSpace: 'nowrap' }}>{formatDate(u.createdAt)}</td>
-                      <td style={{ padding: '12px 16px' }}>
+                      <td style={{ padding:'12px 16px' }}><Pill label={u.status} bg={sc.bg} color={sc.color}/></td>
+                      <td style={{ padding:'12px 16px' }}><Pill label={(u.kycStatus??'not started').replace(/_/g,' ')} {...(KYC_CFG[u.kycStatus]??KYC_CFG.not_started)}/></td>
+                      <td style={{ padding:'12px 16px',fontFamily:'monospace',fontWeight:700,color:cc }}>{u.creditScore}</td>
+                      <td style={{ padding:'12px 16px' }}><Pill label={u.role.replace(/_/g,' ')} bg="rgba(245,158,11,.1)" color="#f59e0b"/></td>
+                      <td style={{ padding:'12px 16px',color:'rgba(255,255,255,.4)',fontSize:12,whiteSpace:'nowrap' }}>{formatDate(u.createdAt)}</td>
+                      <td style={{ padding:'12px 16px' }}>
                         <button onClick={() => setDetailId(u._id)}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.09)', borderRadius: 8, padding: '6px 11px', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,.6)', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
-                          <Eye size={13} /> View
+                          style={{ display:'inline-flex',alignItems:'center',gap:5,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.09)',borderRadius:8,padding:'6px 11px',fontSize:12,fontWeight:600,color:'rgba(255,255,255,.6)',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap' }}>
+                          <Eye size={13}/> View
                         </button>
                       </td>
                     </tr>
@@ -956,42 +997,38 @@ export default function AdminUsersPage() {
       </div>
 
       {pagination.pages > 1 && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,.35)' }}>
-            Showing {((pagination.page - 1) * pagination.limit) + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total.toLocaleString()}
-          </span>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <button onClick={() => load(pagination.page - 1)} disabled={pagination.page <= 1}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 9, padding: '7px 13px', fontSize: 13, fontWeight: 600, color: pagination.page <= 1 ? 'rgba(255,255,255,.2)' : 'rgba(255,255,255,.6)', cursor: pagination.page <= 1 ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
-              <ChevronLeft size={15} /> Prev
+        <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10 }}>
+          <span style={{ fontSize:12,color:'rgba(255,255,255,.35)' }}>Showing {((pagination.page-1)*pagination.limit)+1}–{Math.min(pagination.page*pagination.limit,pagination.total)} of {pagination.total.toLocaleString()}</span>
+          <div style={{ display:'flex',gap:6,flexWrap:'wrap' }}>
+            <button onClick={()=>load(pagination.page-1)} disabled={pagination.page<=1}
+              style={{ display:'inline-flex',alignItems:'center',gap:5,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.08)',borderRadius:9,padding:'7px 13px',fontSize:13,fontWeight:600,color:pagination.page<=1?'rgba(255,255,255,.2)':'rgba(255,255,255,.6)',cursor:pagination.page<=1?'not-allowed':'pointer',fontFamily:'inherit' }}>
+              <ChevronLeft size={15}/> Prev
             </button>
-            {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
-              const pg = Math.max(1, Math.min(pagination.pages - 4, pagination.page - 2)) + i;
-              return (
-                <button key={pg} onClick={() => load(pg)}
-                  style={{ width: 34, height: 34, borderRadius: 9, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, background: pg === pagination.page ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'rgba(255,255,255,.05)', color: pg === pagination.page ? '#050d1a' : 'rgba(255,255,255,.5)' }}>
-                  {pg}
-                </button>
-              );
-            })}
-            <button onClick={() => load(pagination.page + 1)} disabled={pagination.page >= pagination.pages}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 9, padding: '7px 13px', fontSize: 13, fontWeight: 600, color: pagination.page >= pagination.pages ? 'rgba(255,255,255,.2)' : 'rgba(255,255,255,.6)', cursor: pagination.page >= pagination.pages ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
-              Next <ChevronRight size={15} />
+            {Array.from({length:Math.min(5,pagination.pages)},(_,i)=>{const pg=Math.max(1,Math.min(pagination.pages-4,pagination.page-2))+i;return(
+              <button key={pg} onClick={()=>load(pg)}
+                style={{ width:34,height:34,borderRadius:9,border:'none',cursor:'pointer',fontFamily:'inherit',fontSize:13,fontWeight:700,background:pg===pagination.page?'linear-gradient(135deg,#f59e0b,#d97706)':'rgba(255,255,255,.05)',color:pg===pagination.page?'#050d1a':'rgba(255,255,255,.5)' }}>
+                {pg}
+              </button>
+            );})}
+            <button onClick={()=>load(pagination.page+1)} disabled={pagination.page>=pagination.pages}
+              style={{ display:'inline-flex',alignItems:'center',gap:5,background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.08)',borderRadius:9,padding:'7px 13px',fontSize:13,fontWeight:600,color:pagination.page>=pagination.pages?'rgba(255,255,255,.2)':'rgba(255,255,255,.6)',cursor:pagination.page>=pagination.pages?'not-allowed':'pointer',fontFamily:'inherit' }}>
+              Next <ChevronRight size={15}/>
             </button>
           </div>
         </div>
       )}
 
-      {detailId && <UserDetailModal userId={detailId} onClose={() => setDetailId(null)} onRefresh={() => load(pagination.page)} />}
+      {detailId   && <UserDetailModal userId={detailId} onClose={() => setDetailId(null)} onRefresh={() => load(pagination.page)} />}
       {showCreate && <CreateUserModal onClose={() => setShowCreate(false)} onDone={() => load(1)} />}
 
       <style>{`
         *, *::before, *::after { box-sizing: border-box; }
         @keyframes spin { to { transform: rotate(360deg); } }
         select option { background: #1a2235; color: #fff; }
+        textarea { box-sizing: border-box; font-family: inherit; }
         .det-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         @media(max-width: 500px) { .det-grid { grid-template-columns: 1fr; } }
       `}</style>
     </div>
   );
-}
+}   

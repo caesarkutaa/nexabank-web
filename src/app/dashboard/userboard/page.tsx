@@ -36,7 +36,6 @@ const QUICK_ACTIONS = [
   { icon: Plus,       label: 'Add Money',   href: '/dashboard/accounts',     color: '#10b981' },
   { icon: CreditCard, label: 'Cards',       href: '/dashboard/cards',        color: '#3b82f6' },
   { icon: TrendingUp, label: 'Invest',      href: '/dashboard/investments',  color: '#8b5cf6' },
-  { icon: Bitcoin,    label: 'Crypto',      href: '/dashboard/crypto',       color: '#f97316' },
   { icon: Building2,  label: 'Loans',       href: '/dashboard/loans',        color: '#ec4899' },
   { icon: BarChart3,  label: 'Pay Bills',   href: '/dashboard/bills',        color: '#06b6d4' },
   { icon: FileText,   label: 'Cheques',     href: '/dashboard/cheques',      color: '#84cc16' },
@@ -160,13 +159,12 @@ export default function DashboardPage() {
         {/* Balance card */}
         <div className="db-balance-card">
           <div className="db-balance-bg" />
+          <div className="db-balance-bg2" />
           <div className="db-balance-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span className="db-balance-label">Total Balance</span>
               {!loading && (
-                <span style={{ background: 'rgba(245,158,11,.1)', border: '1px solid rgba(245,158,11,.2)', color: '#f59e0b', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100, letterSpacing: '0.06em' }}>
-                  {primaryCurrency}
-                </span>
+                <span className="db-currency-chip">{primaryCurrency}</span>
               )}
             </div>
             <button className="db-eye" onClick={() => setHideBalance(h => !h)}>
@@ -182,7 +180,9 @@ export default function DashboardPage() {
           <div className="db-balance-sub">Across {accounts.length} account{accounts.length !== 1 ? 's' : ''}</div>
           <div className="db-balance-stats">
             <div className="db-stat-item">
-              <ArrowDownLeft size={14} className="db-stat-income-icon" />
+              <div className="db-stat-icon-wrap db-stat-income-wrap">
+                <ArrowDownLeft size={14} className="db-stat-income-icon" />
+              </div>
               <div>
                 <div className="db-stat-val">{loading ? '—' : fmt(monthlyIncome)}</div>
                 <div className="db-stat-label">Income this month</div>
@@ -190,7 +190,9 @@ export default function DashboardPage() {
             </div>
             <div className="db-stat-divider" />
             <div className="db-stat-item">
-              <ArrowUpRight size={14} className="db-stat-expense-icon" />
+              <div className="db-stat-icon-wrap db-stat-expense-wrap">
+                <ArrowUpRight size={14} className="db-stat-expense-icon" />
+              </div>
               <div>
                 <div className="db-stat-val">{loading ? '—' : fmt(monthlyExpenses)}</div>
                 <div className="db-stat-label">Expenses this month</div>
@@ -298,9 +300,7 @@ export default function DashboardPage() {
                       </div>
                       <div className="db-account-number">
                         ••••{acc.accountNumber?.slice(-4)}
-                        <span style={{ marginLeft: 7, background: 'rgba(245,158,11,.1)', border: '1px solid rgba(245,158,11,.18)', color: '#f59e0b', fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 100, verticalAlign: 'middle' }}>
-                          {accCur}
-                        </span>
+                        <span className="db-account-cur-chip">{accCur}</span>
                       </div>
                     </div>
                     <div className="db-account-right">
@@ -357,7 +357,7 @@ export default function DashboardPage() {
                         </span>
                         <span className="db-tx-dot" />
                         <span className="db-tx-status" style={{ color: STATUS_COLORS[tx.status] ?? '#9ca3af' }}>{tx.status}</span>
-                        <span style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', color: 'rgba(255,255,255,.4)', fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 100 }}>{txCur}</span>
+                        <span className="db-tx-cur-chip">{txCur}</span>
                       </div>
                     </div>
                     <div className={`db-tx-amount ${tx.direction === 'credit' ? 'db-tx-credit' : 'db-tx-debit'}`}>
@@ -373,80 +373,126 @@ export default function DashboardPage() {
 
       <style>{`
         *{box-sizing:border-box}
-        .db{display:flex;flex-direction:column;gap:24px;font-family:'Inter',system-ui,sans-serif}
+
+        .db{
+          display:flex;flex-direction:column;gap:clamp(18px,2.5vw,28px);
+          font-family:'Inter',system-ui,sans-serif;
+          max-width:1680px;margin:0 auto;width:100%;
+        }
+
         .db-top{display:flex;flex-direction:column;gap:12px}
-        .db-greeting{display:flex;align-items:flex-start;justify-content:space-between}
-        .db-title{font-size:clamp(20px,3vw,28px);font-weight:800;color:white;letter-spacing:-0.5px;margin-bottom:4px}
+        .db-greeting{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+        .db-title{font-size:clamp(19px,2.6vw,30px);font-weight:800;color:white;letter-spacing:-0.5px;margin-bottom:4px;line-height:1.25}
         .db-name{color:#f59e0b}
-        .db-subtitle{font-size:14px;color:rgba(255,255,255,0.45)}
-        .db-refresh{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4);cursor:pointer;transition:all .15s;flex-shrink:0}
-        .db-refresh:hover{background:rgba(255,255,255,.09);color:white}
+        .db-subtitle{font-size:clamp(12.5px,1.4vw,14px);color:rgba(255,255,255,0.45)}
+        .db-refresh{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:9px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4);cursor:pointer;transition:all .15s;flex-shrink:0}
+        .db-refresh:hover{background:rgba(255,255,255,.09);color:white;border-color:rgba(255,255,255,.18)}
+        .db-refresh:active{transform:scale(.93)}
 
-        /* KYC banner — bg and borderColor set inline per status */
-        .db-kyc-banner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-width:1px;border-style:solid;border-radius:12px;padding:12px 16px;font-size:13px;color:rgba(255,255,255,.65)}
-        .db-kyc-btn{text-decoration:none;background:linear-gradient(135deg,#f59e0b,#d97706);color:#050d1a;font-size:12px;font-weight:700;padding:6px 14px;border-radius:7px;white-space:nowrap;flex-shrink:0;margin-left:auto}
+        /* KYC banner */
+        .db-kyc-banner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-width:1px;border-style:solid;border-radius:14px;padding:13px 16px;font-size:13px;color:rgba(255,255,255,.65);backdrop-filter:blur(6px)}
+        .db-kyc-btn{text-decoration:none;background:linear-gradient(135deg,#f59e0b,#d97706);color:#050d1a;font-size:12px;font-weight:700;padding:7px 15px;border-radius:8px;white-space:nowrap;flex-shrink:0;margin-left:auto;transition:filter .15s, transform .15s}
+        .db-kyc-btn:hover{filter:brightness(1.08);transform:translateY(-1px)}
 
-        .db-cards-grid{display:grid;grid-template-columns:1fr 200px 200px;gap:16px}
+        .db-currency-chip{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);color:#f59e0b;font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;letter-spacing:.06em}
+        .db-account-cur-chip{margin-left:7px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.18);color:#f59e0b;font-size:9px;font-weight:700;padding:1px 6px;border-radius:100px;vertical-align:middle}
+        .db-tx-cur-chip{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.4);font-size:9px;font-weight:700;padding:1px 5px;border-radius:100px}
+
+        /* ── Cards grid: fluid from phone to ultra-wide ── */
+        .db-cards-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:clamp(12px,1.6vw,18px)}
         @media(max-width:1100px){.db-cards-grid{grid-template-columns:1fr 1fr}}
-        @media(max-width:700px){.db-cards-grid{grid-template-columns:1fr}}
+        @media(max-width:640px){.db-cards-grid{grid-template-columns:1fr}}
+        @media(min-width:1681px){.db-cards-grid{grid-template-columns:2fr 1fr 1fr;max-width:1680px}}
 
-        .db-balance-card{background:linear-gradient(135deg,#0a2342,#0d2d52);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px;position:relative;overflow:hidden}
-        .db-balance-bg{position:absolute;top:-60px;right:-60px;width:200px;height:200px;background:radial-gradient(circle,rgba(245,158,11,.12),transparent 70%);border-radius:50%;pointer-events:none}
-        .db-balance-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-        .db-balance-label{font-size:13px;color:rgba(255,255,255,.5);font-weight:500;letter-spacing:.05em;text-transform:uppercase}
-        .db-eye{background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;padding:0;transition:color .15s}
-        .db-eye:hover{color:white}
-        .db-balance-amount{font-size:clamp(26px,4vw,40px);font-weight:900;color:white;letter-spacing:-1px;margin-bottom:6px;word-break:break-all}
-        .db-balance-sub{font-size:13px;color:rgba(255,255,255,.4);margin-bottom:24px}
-        .db-balance-stats{display:flex;gap:0}
-        .db-stat-item{display:flex;align-items:center;gap:10px;flex:1}
+        .db-balance-card{
+          background:linear-gradient(135deg,#0a2342,#0d2d52);
+          border:1px solid rgba(255,255,255,.1);border-radius:20px;
+          padding:clamp(20px,2.6vw,30px);position:relative;overflow:hidden;
+          box-shadow:0 1px 0 rgba(255,255,255,.06) inset, 0 20px 50px -25px rgba(0,0,0,.6);
+        }
+        .db-balance-bg{position:absolute;top:-60px;right:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(245,158,11,.14),transparent 70%);border-radius:50%;pointer-events:none}
+        .db-balance-bg2{position:absolute;bottom:-80px;left:-40px;width:200px;height:200px;background:radial-gradient(circle,rgba(59,130,246,.08),transparent 70%);border-radius:50%;pointer-events:none}
+        .db-balance-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;position:relative;z-index:1}
+        .db-balance-label{font-size:12.5px;color:rgba(255,255,255,.5);font-weight:500;letter-spacing:.05em;text-transform:uppercase}
+        .db-eye{background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;padding:6px;margin:-6px;border-radius:8px;transition:color .15s,background .15s}
+        .db-eye:hover{color:white;background:rgba(255,255,255,.06)}
+        .db-balance-amount{font-size:clamp(28px,4.2vw,44px);font-weight:900;color:white;letter-spacing:-1px;margin-bottom:6px;word-break:break-all;position:relative;z-index:1}
+        .db-balance-sub{font-size:13px;color:rgba(255,255,255,.4);margin-bottom:clamp(18px,3vw,26px);position:relative;z-index:1}
+        .db-balance-stats{display:flex;gap:0;position:relative;z-index:1;flex-wrap:wrap}
+        .db-stat-item{display:flex;align-items:center;gap:10px;flex:1;min-width:140px}
+        .db-stat-icon-wrap{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .db-stat-income-wrap{background:rgba(16,185,129,.12)}
+        .db-stat-expense-wrap{background:rgba(239,68,68,.1)}
         .db-stat-income-icon{color:#10b981}
         .db-stat-expense-icon{color:#ef4444}
-        .db-stat-val{font-size:14px;font-weight:700;color:white;word-break:break-all}
+        .db-stat-val{font-size:13.5px;font-weight:700;color:white;word-break:break-all}
         .db-stat-label{font-size:11px;color:rgba(255,255,255,.4);margin-top:1px}
         .db-stat-divider{width:1px;background:rgba(255,255,255,.1);margin:0 16px}
+        @media(max-width:380px){.db-stat-divider{display:none}.db-balance-stats{gap:14px}}
 
-        .db-donut-card,.db-credit-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:20px}
-        @media(max-width:1100px){.db-donut-card{display:none}}
-        @media(max-width:700px){.db-credit-card{display:none}}
-        .db-card-title{font-size:12px;color:rgba(255,255,255,.45);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:16px}
-        .db-donut-wrap{display:flex;justify-content:center;margin-bottom:12px}
-        .db-donut-svg{width:100px;height:100px}
+        .db-donut-card,.db-credit-card{
+          background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);
+          border-radius:20px;padding:clamp(16px,2vw,20px);
+          display:flex;flex-direction:column;
+        }
+        .db-card-title{font-size:11.5px;color:rgba(255,255,255,.45);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:16px}
+        .db-donut-wrap{display:flex;justify-content:center;margin-bottom:12px;flex:1;align-items:center}
+        .db-donut-svg{width:clamp(80px,9vw,100px);height:clamp(80px,9vw,100px)}
         .db-donut-legend{display:flex;flex-direction:column;gap:6px}
         .db-legend-item{display:flex;align-items:center;gap:7px;font-size:12px;color:rgba(255,255,255,.55)}
         .db-legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-        .db-credit-score{font-size:40px;font-weight:900;color:white;letter-spacing:-2px;line-height:1}
-        .db-credit-rating{font-size:12px;color:#f59e0b;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:4px 0 14px}
+
+        .db-credit-score{font-size:clamp(32px,4vw,40px);font-weight:900;color:white;letter-spacing:-2px;line-height:1}
+        .db-credit-rating{font-size:11.5px;color:#f59e0b;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:4px 0 14px}
         .db-credit-bar-wrap{margin-bottom:12px}
         .db-credit-bar{height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;margin-bottom:4px}
         .db-credit-fill{height:100%;border-radius:3px;transition:width 1s ease}
         .db-credit-range{display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,.3)}
-        .db-kyc-status{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 10px;border-radius:100px;text-transform:capitalize}
+        .db-kyc-status{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 10px;border-radius:100px;text-transform:capitalize;align-self:flex-start}
         .db-kyc-ok      {background:rgba(16,185,129,.12);color:#6ee7b7}
         .db-kyc-pending {background:rgba(245,158,11,.12);color:#fcd34d}
         .db-kyc-rejected{background:rgba(239,68,68,.12); color:#fca5a5}
 
+        /* At medium width: donut + credit go side by side under the balance card */
+        @media(max-width:1100px) and (min-width:641px){
+          .db-donut-card,.db-credit-card{min-height:230px}
+        }
+        /* On the smallest screens keep both cards, stacked, full width */
+        @media(max-width:640px){
+          .db-donut-card,.db-credit-card{width:100%}
+        }
+
         .db-section{}
-        .db-section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-        .db-section-title{font-size:16px;font-weight:700;color:white}
-        .db-see-all{display:flex;align-items:center;gap:4px;font-size:13px;color:#f59e0b;text-decoration:none;font-weight:600;transition:opacity .15s}
-        .db-see-all:hover{opacity:.75}
-        .db-actions-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:10px}
-        @media(max-width:1100px){.db-actions-grid{grid-template-columns:repeat(4,1fr)}}
-        @media(max-width:480px){.db-actions-grid{gap:8px}}
-        .db-action{display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;text-decoration:none;transition:all .15s}
-        .db-action:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);transform:translateY(-2px)}
-        .db-action-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center}
+        .db-section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap}
+        .db-section-title{font-size:clamp(14.5px,1.8vw,16px);font-weight:700;color:white}
+        .db-see-all{display:flex;align-items:center;gap:4px;font-size:13px;color:#f59e0b;text-decoration:none;font-weight:600;transition:opacity .15s,gap .15s}
+        .db-see-all:hover{opacity:.75;gap:6px}
+
+        /* ── Quick actions: scale columns smoothly, never below 2 ── */
+        .db-actions-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:clamp(8px,1.2vw,10px)}
+        @media(max-width:1280px){.db-actions-grid{grid-template-columns:repeat(4,1fr)}}
+        @media(max-width:560px){.db-actions-grid{grid-template-columns:repeat(3,1fr)}}
+        @media(max-width:360px){.db-actions-grid{grid-template-columns:repeat(2,1fr)}}
+
+        .db-action{display:flex;flex-direction:column;align-items:center;gap:8px;padding:clamp(12px,2vw,16px) 8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;text-decoration:none;transition:all .15s}
+        .db-action:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);transform:translateY(-2px);box-shadow:0 10px 24px -16px rgba(0,0,0,.7)}
+        .db-action:active{transform:translateY(0)}
+        .db-action-icon{width:clamp(36px,4.4vw,42px);height:clamp(36px,4.4vw,42px);border-radius:12px;display:flex;align-items:center;justify-content:center;transition:transform .15s}
+        .db-action:hover .db-action-icon{transform:scale(1.06)}
         .db-action-label{font-size:11px;color:rgba(255,255,255,.55);font-weight:600;text-align:center;white-space:nowrap}
-        @media(max-width:480px){.db-action{padding:12px 4px}.db-action-icon{width:36px;height:36px}}
 
-        .db-bottom-grid{display:grid;grid-template-columns:1fr 1.2fr;gap:16px}
-        @media(max-width:1100px){.db-bottom-grid{grid-template-columns:1fr}}
+        /* ── Bottom grid ── */
+        .db-bottom-grid{display:grid;grid-template-columns:1fr 1.2fr;gap:clamp(12px,1.6vw,18px)}
+        @media(max-width:1000px){.db-bottom-grid{grid-template-columns:1fr}}
+        @media(min-width:1681px){.db-bottom-grid{grid-template-columns:1fr 1.4fr}}
 
-        .db-accounts-section,.db-transactions-section{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:20px}
+        .db-accounts-section,.db-transactions-section{
+          background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.07);
+          border-radius:20px;padding:clamp(16px,2.2vw,20px);
+        }
         .db-accounts-list{display:flex;flex-direction:column;gap:10px}
         .db-account-item{display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);transition:all .15s}
-        .db-account-item:hover{background:rgba(255,255,255,.06)}
+        .db-account-item:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1)}
         .db-account-icon{width:40px;height:40px;background:rgba(245,158,11,.12);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#f59e0b;flex-shrink:0}
         .db-account-info{flex:1;min-width:0}
         .db-account-name{font-size:13px;font-weight:700;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -457,11 +503,11 @@ export default function DashboardPage() {
         .db-status-active{color:#10b981}
         .db-status-frozen{color:#3b82f6}
         .db-open-account{display:flex;align-items:center;justify-content:center;gap:7px;padding:12px;border-radius:10px;border:1px dashed rgba(255,255,255,.12);font-size:13px;font-weight:600;color:rgba(255,255,255,.35);text-decoration:none;transition:all .15s}
-        .db-open-account:hover{border-color:rgba(245,158,11,.3);color:#f59e0b;background:rgba(245,158,11,.04)}
+        .db-open-account:hover{border-color:rgba(245,158,11,.35);color:#f59e0b;background:rgba(245,158,11,.05)}
 
         .db-tx-list{display:flex;flex-direction:column;gap:4px}
         .db-tx-item{display:flex;align-items:center;gap:12px;padding:12px 10px;border-radius:10px;transition:background .15s;cursor:pointer}
-        .db-tx-item:hover{background:rgba(255,255,255,.03)}
+        .db-tx-item:hover{background:rgba(255,255,255,.04)}
         .db-tx-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
         .db-tx-credit-icon{background:rgba(16,185,129,.12);color:#10b981}
         .db-tx-debit-icon{background:rgba(239,68,68,.1);color:#ef4444}
@@ -475,13 +521,19 @@ export default function DashboardPage() {
         .db-tx-credit{color:#10b981}
         .db-tx-debit{color:#ef4444}
 
-        .db-empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:32px;color:rgba(255,255,255,.25);font-size:13px}
-        .db-empty-btn{text-decoration:none;background:rgba(245,158,11,.12);color:#f59e0b;font-size:13px;font-weight:700;padding:8px 18px;border-radius:8px}
+        .db-empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:32px;color:rgba(255,255,255,.25);font-size:13px;text-align:center}
+        .db-empty-btn{text-decoration:none;background:rgba(245,158,11,.12);color:#f59e0b;font-size:13px;font-weight:700;padding:8px 18px;border-radius:8px;transition:background .15s}
+        .db-empty-btn:hover{background:rgba(245,158,11,.2)}
 
         .db-skeleton{background:linear-gradient(90deg,rgba(255,255,255,.04) 0%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.04) 100%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px}
-        .db-skeleton-amount{height:48px;width:60%}
+        .db-skeleton-amount{height:clamp(36px,5vw,48px);width:60%}
         @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
         @keyframes db-spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}.db-spin{animation:db-spin 1s linear infinite}
+
+        @media(prefers-reduced-motion:reduce){
+          .db-action,.db-account-item,.db-tx-item,.db-eye,.db-refresh,.db-kyc-btn,.db-see-all,.db-open-account,.db-empty-btn{transition:none}
+          .db-skeleton{animation:none}
+        }
       `}</style>
     </div>
   );

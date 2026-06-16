@@ -146,21 +146,21 @@ export default function AdminDashboardPage() {
       {(d.kyc.pending > 0 || d.cheques.pending > 0 || d.loans.pending > 0) && (
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {d.kyc.pending > 0 && (
-            <Link href="/admin/kyc" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(245,158,11,.08)', border: '1px solid rgba(245,158,11,.22)', borderRadius: 10, padding: '9px 14px', textDecoration: 'none' }}>
+            <Link href="/admin/admin/kyc" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(245,158,11,.08)', border: '1px solid rgba(245,158,11,.22)', borderRadius: 10, padding: '9px 14px', textDecoration: 'none' }}>
               <ShieldCheck size={14} color="#f59e0b" />
               <span style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b' }}>{d.kyc.pending} KYC pending</span>
               <ArrowRight size={13} color="#f59e0b" />
             </Link>
           )}
           {d.cheques.pending > 0 && (
-            <Link href="/admin/cheques" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(96,165,250,.08)', border: '1px solid rgba(96,165,250,.22)', borderRadius: 10, padding: '9px 14px', textDecoration: 'none' }}>
+            <Link href="/admin/admin/cheques" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(96,165,250,.08)', border: '1px solid rgba(96,165,250,.22)', borderRadius: 10, padding: '9px 14px', textDecoration: 'none' }}>
               <FileText size={14} color="#60a5fa" />
               <span style={{ fontSize: 13, fontWeight: 700, color: '#60a5fa' }}>{d.cheques.pending} cheques awaiting review</span>
               <ArrowRight size={13} color="#60a5fa" />
             </Link>
           )}
           {d.loans.pending > 0 && (
-            <Link href="/admin/loans" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(167,139,250,.08)', border: '1px solid rgba(167,139,250,.22)', borderRadius: 10, padding: '9px 14px', textDecoration: 'none' }}>
+            <Link href="/admin/admin/loans" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(167,139,250,.08)', border: '1px solid rgba(167,139,250,.22)', borderRadius: 10, padding: '9px 14px', textDecoration: 'none' }}>
               <Building2 size={14} color="#a78bfa" />
               <span style={{ fontSize: 13, fontWeight: 700, color: '#a78bfa' }}>{d.loans.pending} loan{d.loans.pending !== 1 ? 's' : ''} under review</span>
               <ArrowRight size={13} color="#a78bfa" />
