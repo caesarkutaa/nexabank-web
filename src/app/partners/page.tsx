@@ -36,9 +36,9 @@ const PARTNER_TYPES = [
     icon:'🤝',
     desc:'Reach new customers and markets through co-branded programmes.',
     partners:[
-      { name:'Payroll Providers', desc:'Offer NexaBank accounts as a direct deposit destination to employees.' },
+      { name:'Payroll Providers', desc:'Offer Securesphere accounts as a direct deposit destination to employees.' },
       { name:'HR Platforms',      desc:'Embed financial wellness tools inside employee portals.' },
-      { name:'E-commerce Platforms', desc:'Offer NexaBank checkout financing and virtual card issuance.' },
+      { name:'E-commerce Platforms', desc:'Offer Securesphere checkout financing and virtual card issuance.' },
     ],
   },
 ];
@@ -54,7 +54,7 @@ const BENEFITS = [
 
 export default function PartnersPage() {
   const { config } = useSiteConfig();
-  const bankName = config?.bankName || 'NexaBank';
+  const bankName = config?.bankName || 'Securesphere';
   const [form, setForm] = useState({ company:'', name:'', email:'', type:'', message:'' });
   const [sent, setSent] = useState(false);
   const upd = (k: string) => (e: any) => setForm(p => ({ ...p, [k]: e.target.value }));

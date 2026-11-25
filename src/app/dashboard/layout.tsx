@@ -104,7 +104,7 @@ function KYCGate({ children, pathname }: { children: React.ReactNode; pathname: 
       const status = (data?.status ?? 'not_started') as KYCStatus;
       setKycStatus(status);
       // Always write fresh value — this is what middleware reads on next nav
-      document.cookie = `nexabank_kyc_status=${status};path=/;max-age=${7 * 86400};samesite=strict`;
+      document.cookie = `Securesphere_kyc_status=${status};path=/;max-age=${7 * 86400};samesite=strict`;
       // Keep Zustand in sync so userboard banner and sidebar lock icons update instantly
       updateUser({ kycStatus: status as any });
     } catch {
@@ -164,10 +164,10 @@ function KYCGate({ children, pathname }: { children: React.ReactNode; pathname: 
             <Icon size={30} color={cfg.iconColor} />
           </div>
 
-          {/* NexaBank badge */}
+          {/* Securesphere badge */}
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(245,158,11,.1)', border: '1px solid rgba(245,158,11,.2)', borderRadius: 100, padding: '4px 12px', marginBottom: 16 }}>
             <ShieldCheck size={11} color="#f59e0b" />
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', letterSpacing: '0.06em' }}>NexaBank KYC</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', letterSpacing: '0.06em' }}>Securesphere KYC</span>
           </div>
 
           <h2 style={{ fontSize: 18, fontWeight: 800, color: '#fff', margin: '0 0 10px', letterSpacing: '-.3px' }}>{cfg.title}</h2>
@@ -284,7 +284,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           setUser(profWithFreshKyc);         // update Zustand store with real status
           if (freshKycStatus) {
             // Update cookie so middleware is correct on next navigation
-            document.cookie = `nexabank_kyc_status=${freshKycStatus};path=/;max-age=${7 * 86400};samesite=strict`;
+            document.cookie = `Securesphere_kyc_status=${freshKycStatus};path=/;max-age=${7 * 86400};samesite=strict`;
           }
         }
         const txs: any[] = txRes.data?.data?.transactions ?? [];
@@ -310,7 +310,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const logout = async () => {
     try { await api.post('/auth/logout'); } catch {}
     // Also clear KYC cookie on logout
-    document.cookie = 'nexabank_kyc_status=;path=/;max-age=0';
+    document.cookie = 'Securesphere_kyc_status=;path=/;max-age=0';
     clearAuthCookies();
     clearUser();
     router.push('/login');
@@ -335,7 +335,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="flex items-center justify-between px-[18px] py-5 border-b border-white/[0.05] flex-shrink-0">
           <Link href="/dashboard" className="flex items-center gap-2.5 no-underline" onClick={() => setSideOpen(false)}>
             <span className="w-8 h-8 rounded-[9px] bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-[15px] font-black text-[#050d1a] flex-shrink-0">N</span>
-            <span className="text-[16px] font-extrabold text-white tracking-tight">NexaBank</span>
+            <span className="text-[16px] font-extrabold text-white tracking-tight">Securesphere</span>
           </Link>
           <button onClick={() => setSideOpen(false)} className="lg:hidden w-7 h-7 flex items-center justify-center bg-white/[0.06] border-none rounded-[7px] text-white/50 cursor-pointer hover:bg-white/10 hover:text-white transition-all">
             <X size={17} />

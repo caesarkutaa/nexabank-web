@@ -117,7 +117,7 @@ export default function ForgotPasswordPage() {
       <nav className="fp-nav">
         <Link href="/" className="fp-logo">
           <div className="fp-logo-icon">N</div>
-          <span className="fp-logo-text">NexaBank</span>
+          <span className="fp-logo-text">Securesphere</span>
         </Link>
         <Link href="/login" className="fp-nav-link">← Back to login</Link>
       </nav>

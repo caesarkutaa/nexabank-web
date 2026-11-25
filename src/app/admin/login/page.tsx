@@ -83,7 +83,7 @@ export default function AdminLoginPage() {
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
             <div style={{ width: 40, height: 40, borderRadius: 11, background: 'linear-gradient(135deg,#f59e0b,#d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 900, color: '#050d1a' }}>N</div>
             <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: 17, fontWeight: 800, color: '#fff', letterSpacing: '-.4px' }}>NexaBank</div>
+              <div style={{ fontSize: 17, fontWeight: 800, color: '#fff', letterSpacing: '-.4px' }}>Securesphere</div>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b', letterSpacing: '.1em', textTransform: 'uppercase' }}>Admin Portal</div>
             </div>
           </div>
@@ -130,7 +130,7 @@ export default function AdminLoginPage() {
                   autoFocus
                   onChange={e => setIdentifier(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                  placeholder="admin@nexabank.com"
+                  placeholder="admin@Securesphere.com"
                   style={{
                     width: '100%', background: 'rgba(255,255,255,.05)',
                     border: '1px solid rgba(255,255,255,.1)', borderRadius: 12,
@@ -183,7 +183,7 @@ export default function AdminLoginPage() {
         </div>
 
         <p style={{ textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,.14)', marginTop: 26, lineHeight: 1.7 }}>
-          By signing in you agree to NexaBank's administrator terms. All sessions are encrypted and logged.
+          By signing in you agree to Securesphere's administrator terms. All sessions are encrypted and logged.
         </p>
       </div>
 

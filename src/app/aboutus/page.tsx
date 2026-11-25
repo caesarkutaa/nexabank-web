@@ -33,7 +33,7 @@ export default function AboutPage() {
       <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px clamp(16px,5vw,64px)', borderBottom: '1px solid rgba(255,255,255,.06)', position: 'sticky', top: 0, background: 'rgba(5,13,26,.95)', backdropFilter: 'blur(20px)', zIndex: 50 }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
           <div style={{ width: 34, height: 34, background: 'linear-gradient(135deg,#f59e0b,#d97706)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 16, color: '#050d1a' }}>N</div>
-          <span style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>NexaBank</span>
+          <span style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>Securesphere</span>
         </Link>
         <Link href="/register" style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#050d1a', padding: '9px 20px', borderRadius: 9, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
           Open Account
@@ -43,7 +43,7 @@ export default function AboutPage() {
       {/* Hero */}
       <section style={{ textAlign: 'center', padding: 'clamp(60px,10vw,120px) clamp(16px,5vw,64px) clamp(40px,6vw,80px)', maxWidth: 820, margin: '0 auto' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(245,158,11,.1)', border: '1px solid rgba(245,158,11,.25)', color: '#f59e0b', fontSize: 12, fontWeight: 700, padding: '6px 16px', borderRadius: 100, letterSpacing: '.08em', marginBottom: 28 }}>
-          <Award size={12} /> ABOUT NEXABANK
+          <Award size={12} /> ABOUT Securesphere
         </div>
         <h1 style={{ fontSize: 'clamp(32px,6vw,64px)', fontWeight: 900, color: '#fff', lineHeight: 1.05, letterSpacing: '-2px', marginBottom: 24 }}>
           Banking Built for{' '}
@@ -52,7 +52,7 @@ export default function AboutPage() {
           </span>
         </h1>
         <p style={{ fontSize: 'clamp(15px,2vw,18px)', color: 'rgba(255,255,255,.58)', lineHeight: 1.75, maxWidth: 600, margin: '0 auto' }}>
-          NexaBank was founded with a single mission: make powerful financial tools accessible to everyone — not just the wealthy. We're a digital-first bank that combines enterprise-grade security with an experience anyone can use.
+          Securesphere was founded with a single mission: make powerful financial tools accessible to everyone — not just the wealthy. We're a digital-first bank that combines enterprise-grade security with an experience anyone can use.
         </p>
       </section>
 
@@ -80,7 +80,7 @@ export default function AboutPage() {
               For decades, sophisticated financial tools — investments, international transfers, credit building — were reserved for the privileged few. We believe every person deserves a fair shot at financial security and growth.
             </p>
             <p style={{ fontSize: 15, color: 'rgba(255,255,255,.55)', lineHeight: 1.75 }}>
-              NexaBank brings together everything you need to manage, grow, and protect your money in one place — with no hidden fees and no minimums.
+              Securesphere brings together everything you need to manage, grow, and protect your money in one place — with no hidden fees and no minimums.
             </p>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -120,7 +120,7 @@ export default function AboutPage() {
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: 12 }}>LEADERSHIP</div>
-            <h2 style={{ fontSize: 'clamp(24px,4vw,40px)', fontWeight: 900, color: '#fff', letterSpacing: '-1px' }}>The Team Behind NexaBank</h2>
+            <h2 style={{ fontSize: 'clamp(24px,4vw,40px)', fontWeight: 900, color: '#fff', letterSpacing: '-1px' }}>The Team Behind Securesphere</h2>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px,1fr))', gap: 16 }}>
             {TEAM.map(m => (
@@ -136,7 +136,7 @@ export default function AboutPage() {
 
       {/* Footer note */}
       <div style={{ padding: '24px clamp(16px,5vw,64px)', borderTop: '1px solid rgba(255,255,255,.06)', textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,.25)' }}>
-        © {new Date().getFullYear()} NexaBank, N.A. · Member FDIC · Equal Housing Lender · Deposits insured to $250,000
+        © {new Date().getFullYear()} Securesphere, N.A. · Member FDIC · Equal Housing Lender · Deposits insured to $250,000
       </div>
     </div>
   );

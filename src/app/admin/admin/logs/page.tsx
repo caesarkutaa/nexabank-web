@@ -214,7 +214,7 @@ function BrandingTab({ cfg, onSaved }: { cfg: SiteConfig; onSaved: (c: SiteConfi
       <Card>
         <SectionTitle><Building2 size={13} style={{ marginRight: 7, verticalAlign: 'middle' }} />Bank Identity</SectionTitle>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          {field('Bank Name',  'bankName',   'e.g. NexaBank')}
+          {field('Bank Name',  'bankName',   'e.g. Securesphere')}
           {field('Tagline',    'bankTagline','e.g. Banking for the future')}
         </div>
       </Card>
@@ -223,7 +223,7 @@ function BrandingTab({ cfg, onSaved }: { cfg: SiteConfig; onSaved: (c: SiteConfi
       <Card>
         <SectionTitle><Mail size={13} style={{ marginRight: 7, verticalAlign: 'middle' }} />Contact & Support</SectionTitle>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          {field('Support Email',        'supportEmail',        'support@nexabank.com')}
+          {field('Support Email',        'supportEmail',        'support@Securesphere.com')}
           {field('Support Phone',        'supportPhone',        '+1 (800) 000-0000')}
           {field('Headquarters Address', 'headquartersAddress', '123 Main St, New York, NY')}
         </div>
@@ -234,7 +234,7 @@ function BrandingTab({ cfg, onSaved }: { cfg: SiteConfig; onSaved: (c: SiteConfi
         <SectionTitle><Globe size={13} style={{ marginRight: 7, verticalAlign: 'middle' }} />Legal & Footer Text</SectionTitle>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {field('FDIC Notice',    'fdicNotice',    'Your deposits are FDIC insured up to $250,000.', true)}
-          {field('Copyright Text', 'copyrightText', `© ${new Date().getFullYear()} NexaBank. All rights reserved.`)}
+          {field('Copyright Text', 'copyrightText', `© ${new Date().getFullYear()} Securesphere. All rights reserved.`)}
         </div>
       </Card>
 

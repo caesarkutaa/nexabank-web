@@ -77,7 +77,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Link href="/admin/dashboard" style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none' }}>
               <div style={{ width: 32, height: 32, borderRadius: 9, background: 'linear-gradient(135deg,#f59e0b,#d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: '#050d1a', flexShrink: 0 }}>N</div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', letterSpacing: '-.3px', lineHeight: 1.2 }}>NexaBank</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', letterSpacing: '-.3px', lineHeight: 1.2 }}>Securesphere</div>
                 <div style={{ fontSize: 9, fontWeight: 700, color: '#f59e0b', letterSpacing: '.1em', textTransform: 'uppercase' }}>Admin Panel</div>
               </div>
             </Link>
@@ -169,7 +169,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <h1 style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-.2px' }}>
                 {currentPage?.label ?? 'Admin Panel'}
               </h1>
-              <p style={{ fontSize: 10, color: 'rgba(255,255,255,.28)', margin: 0 }}>NexaBank Administration</p>
+              <p style={{ fontSize: 10, color: 'rgba(255,255,255,.28)', margin: 0 }}>Securesphere Administration</p>
             </div>
           </div>
 

@@ -509,7 +509,7 @@ function FundModal({ account, onClose, onDone }: { account: Account; onClose: ()
         {mode === 'intrabank' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <Lbl t="Recipient NexaBank Account Number" />
+              <Lbl t="Recipient Securesphere Account Number" />
               <div style={{ position: 'relative' }}>
                 <input value={toAcc} onChange={e => handleAccNumChange(e.target.value)}
                   placeholder="Enter full account number" style={inp} onFocus={fg} onBlur={br} />
@@ -519,7 +519,7 @@ function FundModal({ account, onClose, onDone }: { account: Account; onClose: ()
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 9, background: recLookup.found ? 'rgba(52,211,153,.08)' : 'rgba(239,68,68,.08)', border: `1px solid ${recLookup.found ? 'rgba(52,211,153,.2)' : 'rgba(239,68,68,.2)'}` }}>
                   {recLookup.found
                     ? <><CheckCircle2 size={13} color="#34d399" /><span style={{ fontSize: 12, fontWeight: 700, color: '#34d399' }}>{recLookup.name}</span></>
-                    : <><AlertCircle size={13} color="#f87171" /><span style={{ fontSize: 12, color: '#f87171' }}>Account not found in NexaBank</span></>
+                    : <><AlertCircle size={13} color="#f87171" /><span style={{ fontSize: 12, color: '#f87171' }}>Account not found in Securesphere</span></>
                   }
                 </div>
               )}

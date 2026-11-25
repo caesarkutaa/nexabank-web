@@ -338,7 +338,7 @@ function PinModal({ onClose }: { onClose: () => void }) {
 
         <div style={{ background: 'rgba(96,165,250,.08)', border: '1px solid rgba(96,165,250,.18)', borderRadius: 10, padding: '11px 14px', display: 'flex', alignItems: 'center', gap: 9 }}>
           <Key size={14} color="#60a5fa" style={{ flexShrink: 0 }} />
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,.45)', margin: 0 }}>Enter a 6-digit numeric PIN. Never share it with anyone — NexaBank will never ask for it.</p>
+          <p style={{ fontSize: 12, color: 'rgba(255,255,255,.45)', margin: 0 }}>Enter a 6-digit numeric PIN. Never share it with anyone — Securesphere will never ask for it.</p>
         </div>
 
         <PinBox label="New PIN"     value={pin}     set={setPin}     prefix="pin-new" />
@@ -400,7 +400,7 @@ export default function SettingsPage() {
       setProfile(p);
       setKycStatus(ks);
       // Sync cookie and store with fresh value
-      document.cookie = `nexabank_kyc_status=${ks};path=/;max-age=${7 * 86400};samesite=strict`;
+      document.cookie = `Securesphere_kyc_status=${ks};path=/;max-age=${7 * 86400};samesite=strict`;
       setUser({ ...storeUser, ...p, kycStatus: ks } as any);
       setFirstName(p.firstName   || '');
       setLastName (p.lastName    || '');
@@ -660,7 +660,7 @@ export default function SettingsPage() {
                 </div>
                 <p style={{ fontSize: 13, color: 'rgba(255,255,255,.45)', margin: 0, lineHeight: 1.6 }}>
                   {kycStatus === 'approved'
-                    ? 'Your identity is verified. You have full access to all NexaBank features.'
+                    ? 'Your identity is verified. You have full access to all Securesphere features.'
                     : kycStatus === 'pending'
                     ? 'Your documents are under review. This usually takes 1–3 business days.'
                     : kycStatus === 'rejected'

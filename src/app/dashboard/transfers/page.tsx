@@ -23,7 +23,7 @@ function fmtCurrency(amount: number, currency: string): string {
 }
 
 const TYPES = [
-  { id:'intrabank'     as TType, label:'NexaBank', sub:'Free · Instant',  Icon:Building, c:'#34d399' },
+  { id:'intrabank'     as TType, label:'Securesphere', sub:'Free · Instant',  Icon:Building, c:'#34d399' },
   { id:'interbank'     as TType, label:'ACH',       sub:'Fee · 1-2 days',  Icon:Send,     c:'#60a5fa' },
   { id:'international' as TType, label:'Wire',      sub:'Fee · 2-5 days',  Icon:Globe,    c:'#a78bfa' },
 ];
@@ -287,7 +287,7 @@ export default function TransfersPage() {
         }
       } catch (e: any) {
         setLookupResult(null); setRecipName('');
-        if (e.response?.status===404) setLookupError('Account not found on NexaBank.');
+        if (e.response?.status===404) setLookupError('Account not found on Securesphere.');
         else if (e.response?.status===400) setLookupError('Invalid account number.');
       } finally { setLookupLoading(false); }
     }, 600);
@@ -410,7 +410,7 @@ export default function TransfersPage() {
                 {lookupResult && (
                   <div className="lookup-found">
                     <CheckCircle size={14} color="#34d399"/>
-                    <div><div className="lookup-name">{lookupResult.name}</div>{lookupResult.accountType&&<div className="lookup-type">{lookupResult.accountType} account · NexaBank</div>}</div>
+                    <div><div className="lookup-name">{lookupResult.name}</div>{lookupResult.accountType&&<div className="lookup-type">{lookupResult.accountType} account · Securesphere</div>}</div>
                   </div>
                 )}
                 {lookupError && <div className="lookup-error"><AlertCircle size={13}/>{lookupError}</div>}

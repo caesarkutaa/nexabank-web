@@ -209,7 +209,7 @@ export default function CryptoDepositPage() {
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: 'rgba(52,211,153,.06)', border: '1px solid rgba(52,211,153,.15)', borderRadius: 14, padding: '14px 16px' }}>
         <Shield size={17} color="#34d399" style={{ flexShrink: 0, marginTop: 1 }} />
         <div style={{ fontSize: 12, color: 'rgba(52,211,153,.8)', lineHeight: 1.7 }}>
-          <strong style={{ color: '#34d399' }}>Security reminder:</strong> Always send only the matching coin to each address. Sending a different coin to an incompatible address will result in permanent loss. NexaBank cannot recover funds sent to wrong addresses.
+          <strong style={{ color: '#34d399' }}>Security reminder:</strong> Always send only the matching coin to each address. Sending a different coin to an incompatible address will result in permanent loss. Securesphere cannot recover funds sent to wrong addresses.
         </div>
       </div>
 

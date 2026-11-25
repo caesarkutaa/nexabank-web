@@ -3,21 +3,21 @@ import Link from 'next/link';
 import { useSiteConfig } from '../../app/hooks/Usesiteconfig';
 
 const PRESS_RELEASES = [
-  { date:'May 2025',  tag:'Product',    title:'NexaBank Launches Crypto Investment Portfolio with Admin Approval Workflow',   excerpt:'Users can now invest in 10 top cryptocurrencies directly from their banking dashboard, with built-in compliance controls and admin oversight for every order.' },
-  { date:'Mar 2025',  tag:'Growth',     title:'NexaBank Crosses 850,000 Active Members Across 180 Countries',                excerpt:'The milestone marks a 70% year-over-year growth rate, driven by expansion in Sub-Saharan Africa, Southeast Asia, and Latin America.' },
-  { date:'Jan 2025',  tag:'Product',    title:'NexaBank Introduces Virtual Card Instant Issuance with Spending Controls',    excerpt:'Members can now issue unlimited virtual cards, set per-transaction and monthly spend limits, and freeze or delete cards in real time from the dashboard.' },
-  { date:'Nov 2024',  tag:'Funding',    title:'NexaBank Raises $120M Series C Led by Andreessen Horowitz',                   excerpt:'The round values NexaBank at $1.4B and will fund international expansion, regulatory licensing in 15 new markets, and AI-powered fraud detection.' },
-  { date:'Sep 2024',  tag:'Regulatory', title:'NexaBank Obtains Full Banking Charter, Achieves FDIC Member Status',          excerpt:'The charter allows NexaBank to offer FDIC-insured deposits up to $250,000, completing our transition from a fintech app to a fully licensed national bank.' },
-  { date:'Jun 2024',  tag:'Product',    title:'NexaBank Launches Smart Loan Platform with Instant Decisioning',              excerpt:'Personal, auto, mortgage, and business loans are now available with automated underwriting, digital KYC, and same-day disbursement for approved applicants.' },
+  { date:'May 2025',  tag:'Product',    title:'Securesphere Launches Crypto Investment Portfolio with Admin Approval Workflow',   excerpt:'Users can now invest in 10 top cryptocurrencies directly from their banking dashboard, with built-in compliance controls and admin oversight for every order.' },
+  { date:'Mar 2025',  tag:'Growth',     title:'Securesphere Crosses 850,000 Active Members Across 180 Countries',                excerpt:'The milestone marks a 70% year-over-year growth rate, driven by expansion in Sub-Saharan Africa, Southeast Asia, and Latin America.' },
+  { date:'Jan 2025',  tag:'Product',    title:'Securesphere Introduces Virtual Card Instant Issuance with Spending Controls',    excerpt:'Members can now issue unlimited virtual cards, set per-transaction and monthly spend limits, and freeze or delete cards in real time from the dashboard.' },
+  { date:'Nov 2024',  tag:'Funding',    title:'Securesphere Raises $120M Series C Led by Andreessen Horowitz',                   excerpt:'The round values Securesphere at $1.4B and will fund international expansion, regulatory licensing in 15 new markets, and AI-powered fraud detection.' },
+  { date:'Sep 2024',  tag:'Regulatory', title:'Securesphere Obtains Full Banking Charter, Achieves FDIC Member Status',          excerpt:'The charter allows Securesphere to offer FDIC-insured deposits up to $250,000, completing our transition from a fintech app to a fully licensed national bank.' },
+  { date:'Jun 2024',  tag:'Product',    title:'Securesphere Launches Smart Loan Platform with Instant Decisioning',              excerpt:'Personal, auto, mortgage, and business loans are now available with automated underwriting, digital KYC, and same-day disbursement for approved applicants.' },
 ];
 
 const COVERAGE = [
-  { outlet:'TechCrunch',      logo:'TC', color:'#00d100', headline:'NexaBank is making banking actually bearable',        date:'Apr 2025' },
+  { outlet:'TechCrunch',      logo:'TC', color:'#00d100', headline:'Securesphere is making banking actually bearable',        date:'Apr 2025' },
   { outlet:'Forbes',          logo:'F',  color:'#e4002b', headline:'The 10 Most Innovative Fintech Companies of 2025',   date:'Mar 2025' },
-  { outlet:'Financial Times', logo:'FT', color:'#f7c948', headline:'How NexaBank is winning the underbanked market',     date:'Feb 2025' },
-  { outlet:'Bloomberg',       logo:'B',  color:'#00c0ff', headline:'NexaBank: The startup banks are finally afraid of',  date:'Jan 2025' },
+  { outlet:'Financial Times', logo:'FT', color:'#f7c948', headline:'How Securesphere is winning the underbanked market',     date:'Feb 2025' },
+  { outlet:'Bloomberg',       logo:'B',  color:'#00c0ff', headline:'Securesphere: The startup banks are finally afraid of',  date:'Jan 2025' },
   { outlet:'Wired',           logo:'W',  color:'#fff',    headline:'Inside the bank that built itself like a startup',   date:'Dec 2024' },
-  { outlet:'Business Insider',logo:'BI', color:'#fc0',    headline:'NexaBank named Best Digital Bank of 2024',           date:'Nov 2024' },
+  { outlet:'Business Insider',logo:'BI', color:'#fc0',    headline:'Securesphere named Best Digital Bank of 2024',           date:'Nov 2024' },
 ];
 
 const TAG_COLOR: Record<string,string> = {
@@ -26,7 +26,7 @@ const TAG_COLOR: Record<string,string> = {
 
 export default function PressPage() {
   const { config } = useSiteConfig();
-  const bankName = config?.bankName || 'NexaBank';
+  const bankName = config?.bankName || 'Securesphere';
 
   return (
     <div style={{ minHeight:'100vh',background:'#060810',color:'#e2e8f0',fontFamily:"'Inter',system-ui,sans-serif" }}>
@@ -45,8 +45,8 @@ export default function PressPage() {
             <h1 style={{ fontSize:'clamp(28px,4vw,44px)',fontWeight:900,color:'#fff',letterSpacing:'-1.5px',marginBottom:10 }}>{bankName} Press Room</h1>
             <p style={{ fontSize:14,color:'rgba(255,255,255,.4)',fontWeight:300 }}>Latest news, press releases, and media resources.</p>
           </div>
-          <a href="mailto:press@nexabank.com" style={{ display:'inline-flex',alignItems:'center',gap:6,background:'rgba(245,158,11,.1)',border:'1px solid rgba(245,158,11,.25)',borderRadius:10,padding:'10px 18px',fontSize:13,fontWeight:700,color:'#f59e0b',textDecoration:'none',flexShrink:0 }}>
-            📧 press@nexabank.com
+          <a href="mailto:press@Securesphere.com" style={{ display:'inline-flex',alignItems:'center',gap:6,background:'rgba(245,158,11,.1)',border:'1px solid rgba(245,158,11,.25)',borderRadius:10,padding:'10px 18px',fontSize:13,fontWeight:700,color:'#f59e0b',textDecoration:'none',flexShrink:0 }}>
+            📧 press@Securesphere.com
           </a>
         </div>
 
@@ -104,7 +104,7 @@ export default function PressPage() {
             ))}
           </div>
           <div style={{ marginTop:20,fontSize:13,color:'rgba(255,255,255,.35)',fontWeight:300 }}>
-            Press enquiries: <a href="mailto:press@nexabank.com" style={{ color:'#f59e0b',textDecoration:'none' }}>press@nexabank.com</a> · Response within 2 business hours.
+            Press enquiries: <a href="mailto:press@Securesphere.com" style={{ color:'#f59e0b',textDecoration:'none' }}>press@Securesphere.com</a> · Response within 2 business hours.
           </div>
         </section>
       </div>

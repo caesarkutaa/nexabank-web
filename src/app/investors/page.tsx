@@ -28,7 +28,7 @@ const BOARD = [
 
 export default function InvestorsPage() {
   const { config } = useSiteConfig();
-  const bankName = config?.bankName || 'NexaBank';
+  const bankName = config?.bankName || 'Securesphere';
 
   return (
     <div style={{ minHeight:'100vh',background:'#060810',color:'#e2e8f0',fontFamily:"'Inter',system-ui,sans-serif" }}>
@@ -37,7 +37,7 @@ export default function InvestorsPage() {
           <div style={{ width:34,height:34,borderRadius:9,background:'linear-gradient(135deg,#f59e0b,#d97706)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,fontWeight:900,color:'#060810' }}>{bankName[0]}</div>
           <span style={{ fontSize:18,fontWeight:800,color:'#fff',letterSpacing:'-.3px' }}>{bankName}</span>
         </Link>
-        <a href="mailto:investors@nexabank.com" style={{ background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'#060810',borderRadius:10,padding:'9px 20px',fontSize:13,fontWeight:700,textDecoration:'none' }}>Investor Enquiries</a>
+        <a href="mailto:investors@Securesphere.com" style={{ background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'#060810',borderRadius:10,padding:'9px 20px',fontSize:13,fontWeight:700,textDecoration:'none' }}>Investor Enquiries</a>
       </nav>
 
       <div style={{ maxWidth:960,margin:'0 auto',padding:'64px 32px' }}>
@@ -106,8 +106,8 @@ export default function InvestorsPage() {
           <h2 style={{ fontSize:18,fontWeight:700,color:'#fff',marginBottom:8 }}>Investor Relations Contact</h2>
           <p style={{ fontSize:13,color:'rgba(255,255,255,.45)',marginBottom:16,fontWeight:300,lineHeight:1.6 }}>For investor enquiries, financial reports, or media requests, please reach out directly.</p>
           <div style={{ display:'flex',gap:10,flexWrap:'wrap' }}>
-            <a href="mailto:investors@nexabank.com" style={{ display:'inline-flex',alignItems:'center',gap:6,background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'#060810',borderRadius:10,padding:'10px 20px',fontSize:13,fontWeight:700,textDecoration:'none' }}>📧 investors@nexabank.com</a>
-            <a href="mailto:press@nexabank.com" style={{ display:'inline-flex',alignItems:'center',gap:6,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.12)',color:'rgba(255,255,255,.6)',borderRadius:10,padding:'10px 20px',fontSize:13,fontWeight:600,textDecoration:'none' }}>Press Enquiries</a>
+            <a href="mailto:investors@Securesphere.com" style={{ display:'inline-flex',alignItems:'center',gap:6,background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'#060810',borderRadius:10,padding:'10px 20px',fontSize:13,fontWeight:700,textDecoration:'none' }}>📧 investors@Securesphere.com</a>
+            <a href="mailto:press@Securesphere.com" style={{ display:'inline-flex',alignItems:'center',gap:6,background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.12)',color:'rgba(255,255,255,.6)',borderRadius:10,padding:'10px 20px',fontSize:13,fontWeight:600,textDecoration:'none' }}>Press Enquiries</a>
           </div>
           <div style={{ marginTop:16,fontSize:12,color:'rgba(255,255,255,.25)',fontWeight:300 }}>Forward-looking statements on this page involve risks and uncertainties. Actual results may differ materially from those projected.</div>
         </section>

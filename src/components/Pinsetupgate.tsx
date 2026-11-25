@@ -171,7 +171,7 @@ export default function PinSetupGate({ children }: { children: React.ReactNode }
             </h2>
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,.45)', margin: 0, lineHeight: 1.6 }}>
               {done
-                ? 'You now have full access to NexaBank. Welcome!'
+                ? 'You now have full access to Securesphere. Welcome!'
                 : 'Before you continue, set a 6-digit security PIN. You\'ll need it to confirm transfers and payments.'}
             </p>
           </div>
@@ -188,7 +188,7 @@ export default function PinSetupGate({ children }: { children: React.ReactNode }
                 <p style={{ fontSize: 12, color: 'rgba(255,255,255,.5)', margin: 0, lineHeight: 1.6 }}>
                   Your PIN protects every transfer you make. It is separate from your password
                   and is <strong style={{ color: '#60a5fa' }}>required before any money moves</strong>.
-                  Never share it with anyone — NexaBank will never ask for it.
+                  Never share it with anyone — Securesphere will never ask for it.
                 </p>
               </div>
 

@@ -5,7 +5,7 @@ import { useSiteConfig } from '../../app/hooks/Usesiteconfig';
 
 export default function FdicPage() {
   const { config } = useSiteConfig();
-  const bankName = config?.bankName || 'NexaBank';
+  const bankName = config?.bankName || 'Securesphere';
 
   const covered = [
     'Checking accounts',

@@ -4,7 +4,7 @@ import { useSiteConfig } from '../../app/hooks/Usesiteconfig';
 
 export default function CookiesPage() {
   const { config } = useSiteConfig();
-  const bankName = config?.bankName || 'NexaBank';
+  const bankName = config?.bankName || 'Securesphere';
 
   const sections = [
     {

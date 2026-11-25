@@ -134,7 +134,7 @@ export default function AdminDashboardPage() {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontSize: 'clamp(18px,2.5vw,24px)', fontWeight: 800, color: '#fff', margin: '0 0 4px', letterSpacing: '-.4px' }}>Dashboard</h1>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,.38)', margin: 0 }}>Real-time overview of NexaBank operations</p>
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,.38)', margin: 0 }}>Real-time overview of Securesphere operations</p>
         </div>
         <button onClick={() => load(true)} disabled={refreshing}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,.55)', cursor: 'pointer', fontFamily: 'inherit' }}>

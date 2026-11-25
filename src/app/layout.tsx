@@ -7,7 +7,7 @@ import PinSetupGate from '../components/Pinsetupgate';
 const inter = Inter({ subsets: ['latin'], display: 'swap' });
 
 export const metadata: Metadata = {
-  title:       { default: 'NexaBank', template: '%s | NexaBank' },
+  title:       { default: 'Securesphere', template: '%s | Securesphere' },
   description: 'Professional USA Banking — Secure, Fast, Reliable',
 };
 

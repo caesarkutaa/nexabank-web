@@ -125,7 +125,7 @@ export default function LoginPage() {
           <div className="w-8 h-8 rounded-[8px] bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-base font-black text-[#050d1a]">
             N
           </div>
-          <span className="text-[18px] font-extrabold text-white">NexaBank</span>
+          <span className="text-[18px] font-extrabold text-white">Securesphere</span>
         </Link>
         <Link href="/register" className="text-sm text-white/50 hover:text-white transition-colors no-underline">
           No account? <span className="text-amber-500 font-semibold">Open one free →</span>
@@ -148,7 +148,7 @@ export default function LoginPage() {
               <span style={{
                 background: 'linear-gradient(135deg,#f59e0b,#fbbf24)',
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-              }}>NexaBank</span>
+              }}>Securesphere</span>
             </h1>
             <p className="text-[15px] text-white/55 leading-relaxed mb-10 max-w-[360px]">
               Your complete financial platform — transfers, investments, cards, loans, and more.

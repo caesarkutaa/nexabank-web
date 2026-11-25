@@ -23,7 +23,7 @@ const DEPTS = ['All', ...Array.from(new Set(JOBS.map(j => j.dept)))];
 const PERKS = [
   { icon:'💰', title:'Competitive Salary',    desc:'Top-of-market compensation benchmarked quarterly against industry data.' },
   { icon:'🏥', title:'Full Health Coverage',  desc:'100% employer-paid medical, dental, and vision for you and your family.' },
-  { icon:'🌍', title:'Remote-First Culture',  desc:'Work from anywhere. We have hubs in New York, London, and Lagos.' },
+  { icon:'🌍', title:'Remote-First Culture',  desc:'Work from anywhere. We have hubs in New York, London' },
   { icon:'📈', title:'Equity',                desc:'Meaningful equity stake so you share in the upside you help create.' },
   { icon:'🎓', title:'Learning Budget',        desc:'$3,000/year for courses, conferences, books, and certifications.' },
   { icon:'🏖️', title:'Unlimited PTO',         desc:'Take the time you need. We care about output, not hours logged.' },
@@ -45,7 +45,7 @@ const DEPT_TEXT: Record<string,string> = {
 
 export default function CareersPage() {
   const { config } = useSiteConfig();
-  const bankName = config?.bankName || 'NexaBank';
+  const bankName = config?.bankName || 'Securesphere';
   const [dept, setDept] = useState('All');
   const [search, setSearch] = useState('');
   const filtered = JOBS.filter(j =>
@@ -145,7 +145,7 @@ export default function CareersPage() {
         <div style={{ marginTop:40,background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.07)',borderRadius:14,padding:'24px',textAlign:'center' }}>
           <div style={{ fontSize:15,fontWeight:700,color:'#fff',marginBottom:8 }}>Don't see your role?</div>
           <p style={{ fontSize:13,color:'rgba(255,255,255,.4)',marginBottom:16,fontWeight:300 }}>We're always looking for exceptional talent. Send us your CV and we'll be in touch.</p>
-          <a href="mailto:careers@nexabank.com" style={{ display:'inline-flex',alignItems:'center',gap:6,background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'#060810',borderRadius:10,padding:'10px 22px',fontSize:13,fontWeight:700,textDecoration:'none' }}>
+          <a href="mailto:careers@Securesphere.com" style={{ display:'inline-flex',alignItems:'center',gap:6,background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'#060810',borderRadius:10,padding:'10px 22px',fontSize:13,fontWeight:700,textDecoration:'none' }}>
             Send Open Application
           </a>
         </div>

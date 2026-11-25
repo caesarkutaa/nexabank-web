@@ -1,13 +1,13 @@
-export const APP_NAME    = 'NexaBank';
+export const APP_NAME    = 'Securesphere';
 export const APP_TAGLINE = 'Banking for the Modern Age';
-export const SUPPORT_EMAIL = 'support@nexabank.com';
-export const SUPPORT_PHONE = '1-800-NEXABANK';
+export const SUPPORT_EMAIL = 'support@Securesphere.com';
+export const SUPPORT_PHONE = '1-800-Securesphere';
 
 export const COOKIE_KEYS = {
-  TOKEN:    'nexabank_token',
-  REFRESH:  'nexabank_refresh',
-  USER_ID:  'nexabank_user_id',
-  ROLE:     'nexabank_role',
+  TOKEN:    'Securesphere_token',
+  REFRESH:  'Securesphere_refresh',
+  USER_ID:  'Securesphere_user_id',
+  ROLE:     'Securesphere_role',
 } as const;
 
 export const ROUTES = {
@@ -83,7 +83,7 @@ export const CRYPTO_CURRENCIES = [
 ] as const;
 
 export const TRANSFER_TYPES = [
-  { value: 'intrabank',      label: 'NexaBank to NexaBank', fee: 'Free',  time: 'Instant'        },
+  { value: 'intrabank',      label: 'Securesphere to Securesphere', fee: 'Free',  time: 'Instant'        },
   { value: 'interbank',      label: 'ACH Transfer',          fee: '$2.50', time: '1-2 Business Days'},
   { value: 'international',  label: 'International Wire',     fee: '2%',    time: '2-5 Business Days'},
 ] as const;
@@ -106,7 +106,7 @@ export const US_STATES = [
 export const TRANSACTION_TYPES = [
   { value: 'deposit',                label: 'Deposit'               },
   { value: 'withdrawal',             label: 'Withdrawal'            },
-  { value: 'intrabank_transfer',     label: 'NexaBank Transfer'     },
+  { value: 'intrabank_transfer',     label: 'Securesphere Transfer'     },
   { value: 'interbank_transfer',     label: 'ACH Transfer'          },
   { value: 'international_transfer', label: 'International Wire'    },
   { value: 'bill_payment',           label: 'Bill Payment'          },

@@ -142,7 +142,7 @@ function VerifyEmailContent() {
       <nav className="vp-nav">
         <Link href="/" className="vp-logo">
           <div className="vp-logo-icon">N</div>
-          <span className="vp-logo-text">NexaBank</span>
+          <span className="vp-logo-text">Securesphere</span>
         </Link>
         <Link href="/login" className="vp-back-link">← Back to login</Link>
       </nav>

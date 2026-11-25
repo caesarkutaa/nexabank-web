@@ -48,7 +48,7 @@ export default function PageLoader() {
           animation:      'nxpulse 1.6s ease-in-out infinite',
         }}>N</div>
         <span style={{ fontSize:28, fontWeight:800, color:'#fff', letterSpacing:'-0.5px' }}>
-          NexaBank
+          Securesphere
         </span>
       </div>
 

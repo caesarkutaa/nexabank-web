@@ -4,7 +4,7 @@ import { useSiteConfig } from '../../app/hooks/Usesiteconfig';
 
 export default function PrivacyPage() {
   const { config } = useSiteConfig();
-  const bankName = config?.bankName || 'NexaBank';
+  const bankName = config?.bankName || 'Securesphere';
 
   const sections = [
     { title:'1. Information We Collect', content:`We collect information you provide directly: name, email address, date of birth, government-issued ID, Social Security Number (for US residents), phone number, and financial information needed to open and operate your account. We also collect technical data including IP address, device identifiers, browser type, and usage patterns through cookies and similar technologies. Transaction data — including amounts, timestamps, counterparties, and locations — is recorded for every financial operation.` },

@@ -276,7 +276,7 @@ export default function RegisterPage() {
       <nav className="relative z-10 flex items-center justify-between px-6 md:px-10 py-4 border-b border-white/5">
         <Link href="/" className="flex items-center gap-2.5 no-underline">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center font-black text-[#050d1a] text-[15px]">N</div>
-          <span className="font-extrabold text-[17px] text-white">NexaBank</span>
+          <span className="font-extrabold text-[17px] text-white">Securesphere</span>
         </Link>
         <Link href="/login" className="text-sm text-white/38 hover:text-white/70 transition-colors no-underline">
           Already have an account? <span className="text-amber-400 font-semibold">Sign in →</span>
@@ -297,7 +297,7 @@ export default function RegisterPage() {
               <span className="bg-gradient-to-r from-amber-400 to-amber-300 bg-clip-text text-transparent">Right Here</span>
             </h1>
             <p className="text-white/42 text-[14px] leading-relaxed mb-9">
-              Join 850,000+ members who trust NexaBank for transfers, investments, virtual cards, and global wires — in your currency.
+              Join 850,000+ members who trust Securesphere for transfers, investments, virtual cards, and global wires — in your currency.
             </p>
             <div className="space-y-4 mb-9">
               {[
@@ -443,7 +443,7 @@ export default function RegisterPage() {
                     <F label="State / Province / Region" opt>
                       <div className="relative">
                         <MapPin size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none"/>
-                        <input {...f2.register('state')} placeholder="e.g. California, Lagos, Ontario" className={pi}/>
+                        <input {...f2.register('state')} placeholder="e.g. California, NY, Ontario" className={pi}/>
                       </div>
                     </F>
 
@@ -577,7 +577,7 @@ export default function RegisterPage() {
                 <div>
                   <h2 className="text-2xl font-extrabold mb-2">Account Created! 🎉</h2>
                   <p className="text-white/48 text-[14px] leading-relaxed">
-                    Welcome to NexaBank, <strong className="text-white">{s1data?.firstName}</strong>!<br/>
+                    Welcome to Securesphere, <strong className="text-white">{s1data?.firstName}</strong>!<br/>
                     We sent a code to <strong className="text-white">{s1data?.email}</strong>.
                   </p>
                 </div>
