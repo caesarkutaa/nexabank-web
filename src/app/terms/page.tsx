@@ -4,7 +4,7 @@ import { useSiteConfig } from '../../app/hooks/Usesiteconfig';
 
 export default function TermsPage() {
   const { config } = useSiteConfig();
-  const bankName = config?.bankName || 'NexaBank';
+  const bankName = config?.bankName || 'Securesphere';
 
   const sections = [
     { title:'1. Acceptance of Terms', content:`By opening an account or using any ${bankName} service, you agree to these Terms of Service in full. If you do not agree, do not use our services. We may update these terms at any time with 30 days notice for material changes.` },

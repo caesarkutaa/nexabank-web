@@ -19,9 +19,9 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // ── User cookies ──
-  const userToken  = request.cookies.get('nexabank_token')?.value;
-  const userRole   = request.cookies.get('nexabank_role')?.value;
-  const kycStatus  = request.cookies.get('nexabank_kyc_status')?.value;
+  const userToken  = request.cookies.get('Securesphere_token')?.value;
+  const userRole   = request.cookies.get('Securesphere_role')?.value;
+  const kycStatus  = request.cookies.get('Securesphere_kyc_status')?.value;
   const isUserAuth = !!userToken;
   const isUserAdmin = userRole === 'admin' || userRole === 'super_admin';
 

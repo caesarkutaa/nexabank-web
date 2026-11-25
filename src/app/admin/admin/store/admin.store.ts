@@ -20,7 +20,7 @@ export const useAdminStore = create<AdminStore>()(
       clearAdmin:  ()        => set({ admin: null }),
     }),
     {
-      name:    'nexabank_admin_auth',    // separate localStorage key from user 'nexabank_auth'
+      name:    'Securesphere_admin_auth',    // separate localStorage key from user 'Securesphere_auth'
       storage: createJSONStorage(() => localStorage),
       partialize: (s) => ({ admin: s.admin }),
     },

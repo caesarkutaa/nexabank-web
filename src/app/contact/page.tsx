@@ -6,7 +6,7 @@ import { useSiteConfig } from '../../app/hooks/Usesiteconfig';
 
 export default function ContactPage() {
   const { config } = useSiteConfig();
-  const bankName = config?.bankName || 'NexaBank';
+  const bankName = config?.bankName || 'Securesphere';
   const [form, setForm] = useState({ name:'', email:'', subject:'', message:'' });
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
@@ -45,7 +45,7 @@ export default function ContactPage() {
           <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
             {[
               { Icon:Mail,    color:'#f59e0b', label:'Email Support',   val:`support@${bankName.toLowerCase()}.com`,  sub:'Mon–Fri, 9am–6pm ET' },
-              { Icon:Phone,   color:'#60a5fa', label:'Phone',            val:'1-800-NEXABANK',                         sub:'24/7 for account emergencies' },
+              { Icon:Phone,   color:'#60a5fa', label:'Phone',            val:'1-800-Securesphere',                         sub:'24/7 for account emergencies' },
               { Icon:MapPin,  color:'#34d399', label:'Headquarters',     val:'1 Financial Plaza',                      sub:'New York, NY 10005' },
               { Icon:Clock,   color:'#a78bfa', label:'Support Hours',    val:'Mon–Fri 8am–8pm ET',                    sub:'Sat 9am–5pm ET' },
             ].map(({ Icon, color, label, val, sub }) => (

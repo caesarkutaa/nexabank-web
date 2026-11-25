@@ -118,10 +118,10 @@ export function KYCGate({ children }: KYCGateProps) {
             <Icon size={32} color={cfg.iconColor} />
           </div>
 
-          {/* NexaBank badge */}
+          {/* Securesphere badge */}
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(245,158,11,.1)', border: '1px solid rgba(245,158,11,.2)', borderRadius: 100, padding: '4px 12px', marginBottom: 18 }}>
             <ShieldCheck size={12} color="#f59e0b" />
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', letterSpacing: '0.06em' }}>NexaBank Security</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', letterSpacing: '0.06em' }}>Securesphere Security</span>
           </div>
 
           <h2 style={{ fontSize: 20, fontWeight: 800, color: '#fff', margin: '0 0 10px', letterSpacing: '-.3px' }}>

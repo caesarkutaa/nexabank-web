@@ -49,7 +49,7 @@ const fmtD  = (d: string) => new Intl.DateTimeFormat(undefined, { month:'short',
 const fmtDT = (d: string) => new Intl.DateTimeFormat(undefined, { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' }).format(new Date(d));
 
 const TYPE_LABELS: Record<string, string> = {
-  deposit:'Deposit', withdrawal:'Withdrawal', intrabank_transfer:'NexaBank Transfer',
+  deposit:'Deposit', withdrawal:'Withdrawal', intrabank_transfer:'Securesphere Transfer',
   interbank_transfer:'ACH Transfer', international_transfer:'International Wire',
   bill_payment:'Bill Payment', cheque_deposit:'Cheque Deposit',
   crypto_payment:'Crypto Payment', investment:'Investment',

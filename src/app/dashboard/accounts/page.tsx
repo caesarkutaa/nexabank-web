@@ -180,8 +180,8 @@ function AdminFrozenNotice() {
       <ShieldAlert size={13} color="#60a5fa" style={{ flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: '#60a5fa', display: 'block' }}>Frozen by compliance team</span>
-        <a href="mailto:support@nexabank.com" style={{ fontSize: 11, color: 'rgba(96,165,250,.7)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 3, marginTop: 1 }}>
-          <Mail size={10} /> Contact support@nexabank.com to unfreeze
+        <a href="mailto:support@Securesphere.com" style={{ fontSize: 11, color: 'rgba(96,165,250,.7)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 3, marginTop: 1 }}>
+          <Mail size={10} /> Contact support@Securesphere.com to unfreeze
         </a>
       </div>
     </div>
@@ -223,7 +223,7 @@ export default function AccountsPage() {
   const freeze = async (a: Account) => {
     // Client-side guard — show clear message before even hitting the API
     if (a.adminFrozen && a.status === 'frozen') {
-      toast.error('This account was frozen by our team. Contact support@nexabank.com to unfreeze it.');
+      toast.error('This account was frozen by our team. Contact support@Securesphere.com to unfreeze it.');
       return;
     }
     setFreezingId(a._id);
@@ -251,7 +251,7 @@ export default function AccountsPage() {
       <div className="hdr">
         <div>
           <h1 className="title">My Accounts</h1>
-          <p className="sub">Manage your NexaBank accounts</p>
+          <p className="sub">Manage your Securesphere accounts</p>
         </div>
         <button className="addbtn" onClick={() => setOpenModal(true)}>
           <Plus size={15} /> Open Account

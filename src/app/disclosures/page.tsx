@@ -4,7 +4,7 @@ import { useSiteConfig } from '../../app/hooks/Usesiteconfig';
 
 export default function DisclosuresPage() {
   const { config } = useSiteConfig();
-  const bankName = config?.bankName || 'NexaBank';
+  const bankName = config?.bankName || 'Securesphere';
 
   const disclosures = [
     {
@@ -29,7 +29,7 @@ export default function DisclosuresPage() {
       id: 'D-004',
       title: 'Virtual Card and Debit Card Disclosure',
       effective: 'January 1, 2024',
-      content: `Virtual and physical debit cards issued by ${bankName} are subject to the Electronic Fund Transfer Act (EFTA) and Regulation E. Your liability for unauthorised transactions is limited to $50 if you report the loss or theft within 2 business days, or $500 if reported within 60 days of your statement. Zero-liability protection applies to Visa/Mastercard-branded cards for transactions processed through their networks when reported promptly. To report a lost or stolen card, contact support immediately at support@${bankName.toLowerCase()}.com or call 1-800-NEXABANK.`,
+      content: `Virtual and physical debit cards issued by ${bankName} are subject to the Electronic Fund Transfer Act (EFTA) and Regulation E. Your liability for unauthorised transactions is limited to $50 if you report the loss or theft within 2 business days, or $500 if reported within 60 days of your statement. Zero-liability protection applies to Visa/Mastercard-branded cards for transactions processed through their networks when reported promptly. To report a lost or stolen card, contact support immediately at support@${bankName.toLowerCase()}.com or call 1-800-Securesphere.`,
     },
     {
       id: 'D-005',
@@ -123,7 +123,7 @@ export default function DisclosuresPage() {
 
         <div style={{ marginTop:48,background:'rgba(245,158,11,.06)',border:'1px solid rgba(245,158,11,.15)',borderRadius:14,padding:'18px 22px',fontSize:13,color:'rgba(245,158,11,.7)',lineHeight:1.7 }}>
           <strong style={{ color:'#f59e0b',display:'block',marginBottom:6 }}>Questions about these disclosures?</strong>
-          Contact our Compliance department at compliance@{bankName.toLowerCase()}.com, call 1-800-NEXABANK, or write to: {bankName}, N.A., Compliance Department, 1 Financial Plaza, New York, NY 10005. We are required to respond to compliance inquiries within 10 business days.
+          Contact our Compliance department at compliance@{bankName.toLowerCase()}.com, call 1-800-Securesphere, or write to: {bankName}, N.A., Compliance Department, 1 Financial Plaza, New York, NY 10005. We are required to respond to compliance inquiries within 10 business days.
         </div>
       </div>
 

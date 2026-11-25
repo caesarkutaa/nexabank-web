@@ -5,7 +5,7 @@
 // export default function SiteFooter() {
 //   const { config } = useSiteConfig();
 
-//   const bankName       = config?.bankName       || 'NexaBank';
+//   const bankName       = config?.bankName       || 'Securesphere';
 //   const fdicNotice     = config?.fdicNotice     || 'Your deposits are FDIC insured up to $250,000.';
 //   const copyrightText  = config?.copyrightText  || `© ${new Date().getFullYear()} ${bankName}. All rights reserved.`;
 //   const footerSections: FooterSection[] = config?.footerSections ?? [];

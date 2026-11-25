@@ -39,7 +39,7 @@ export function FrozenAccountModal({ accountNumber }: Props) {
       </div>
 
       <a
-        href="mailto:support@nexabank.com"
+        href="mailto:support@Securesphere.com"
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
           background: 'rgba(96,165,250,.12)', border: '1px solid rgba(96,165,250,.25)',
@@ -50,7 +50,7 @@ export function FrozenAccountModal({ accountNumber }: Props) {
       </a>
 
       <p style={{ fontSize: 11, color: 'rgba(255,255,255,.2)', margin: 0 }}>
-        support@nexabank.com · Available 24/7
+        support@Securesphere.com · Available 24/7
       </p>
     </div>
   );

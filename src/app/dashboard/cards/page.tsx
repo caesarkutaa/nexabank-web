@@ -183,7 +183,7 @@ function RevealModal({ card, cardData, onClose }: {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(239,68,68,.07)', border: '1px solid rgba(239,68,68,.15)', borderRadius: 10, padding: '10px 13px' }}>
           <Shield size={14} color="#f87171" style={{ flexShrink: 0 }} />
           <p style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', margin: 0, lineHeight: 1.5 }}>
-            Never share your card details with anyone. NexaBank will never ask for your CVV.
+            Never share your card details with anyone. Securesphere will never ask for your CVV.
           </p>
         </div>
 

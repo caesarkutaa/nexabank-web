@@ -10,7 +10,7 @@ const api = axios.create({
 // ── Request Interceptor ───────────────────────────────────────
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = Cookies.get('nexabank_token');
+    const token = Cookies.get('Securesphere_token');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -29,8 +29,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      const refreshToken = Cookies.get('nexabank_refresh');
-      const userId       = Cookies.get('nexabank_user_id');
+      const refreshToken = Cookies.get('Securesphere_refresh');
+      const userId       = Cookies.get('Securesphere_user_id');
 
       if (refreshToken && userId) {
         try {
@@ -40,7 +40,7 @@ api.interceptors.response.use(
           );
 
           const newToken = data.data.accessToken;
-          Cookies.set('nexabank_token', newToken, { expires: 1, secure: true, sameSite: 'Strict' });
+          Cookies.set('Securesphere_token', newToken, { expires: 1, secure: true, sameSite: 'Strict' });
 
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
@@ -73,32 +73,32 @@ export function setAuthCookies(
   role:         string,
 ) {
   const opts = { expires: 7, secure: true, sameSite: 'Strict' as const };
-  Cookies.set('nexabank_token',   token,        opts);
-  Cookies.set('nexabank_refresh', refreshToken, opts);
-  Cookies.set('nexabank_user_id', userId,       opts);
-  Cookies.set('nexabank_role',    role,         opts);
+  Cookies.set('Securesphere_token',   token,        opts);
+  Cookies.set('Securesphere_refresh', refreshToken, opts);
+  Cookies.set('Securesphere_user_id', userId,       opts);
+  Cookies.set('Securesphere_role',    role,         opts);
 }
 
 export function clearAuthCookies() {
-  ['nexabank_token', 'nexabank_refresh', 'nexabank_user_id', 'nexabank_role'].forEach(
+  ['Securesphere_token', 'Securesphere_refresh', 'Securesphere_user_id', 'Securesphere_role'].forEach(
     (key) => Cookies.remove(key),
   );
 }
 
 export function getAuthToken(): string | undefined {
-  return Cookies.get('nexabank_token');
+  return Cookies.get('Securesphere_token');
 }
 
 export function getUserRole(): string | undefined {
-  return Cookies.get('nexabank_role');
+  return Cookies.get('Securesphere_role');
 }
 
 export function isAuthenticated(): boolean {
-  return !!Cookies.get('nexabank_token');
+  return !!Cookies.get('Securesphere_token');
 }
 
 export function isAdmin(): boolean {
-  const role = Cookies.get('nexabank_role');
+  const role = Cookies.get('Securesphere_role');
   return role === 'admin' || role === 'super_admin';
 }
 

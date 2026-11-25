@@ -28,7 +28,7 @@ export const useAuthStore = create<AuthState>()(
         })),
     }),
     {
-      name:    'nexabank_auth',
+      name:    'Securesphere_auth',
       partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
     },
   ),

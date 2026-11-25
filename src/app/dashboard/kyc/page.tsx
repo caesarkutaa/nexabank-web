@@ -138,7 +138,7 @@ type BannerCfg = { bg: string; border: string; icon: React.ElementType; iconColo
 
 function StatusBanner({ kyc, onRefresh }: { kyc: KYCStatus; onRefresh: () => void }) {
   const BANNER_CFG: Partial<Record<KYCStatusValue, BannerCfg>> = {
-    approved:  { bg:'rgba(52,211,153,.08)', border:'rgba(52,211,153,.25)', icon: ShieldCheck, iconColor:'#34d399', title:'Identity Verified',      sub:'Your account is fully verified. You have access to all NexaBank features.' },
+    approved:  { bg:'rgba(52,211,153,.08)', border:'rgba(52,211,153,.25)', icon: ShieldCheck, iconColor:'#34d399', title:'Identity Verified',      sub:'Your account is fully verified. You have access to all Securesphere features.' },
     pending:   { bg:'rgba(245,158,11,.08)', border:'rgba(245,158,11,.25)', icon: Clock,        iconColor:'#f59e0b', title:'Under Review',            sub:'Your documents are being reviewed. This typically takes  1-3 business days.' },
     rejected:  { bg:'rgba(239,68,68,.08)',  border:'rgba(239,68,68,.25)',  icon: XCircle,      iconColor:'#f87171', title:'Verification Rejected',   sub: kyc.rejectionNote || 'Your submission was rejected. Please re-submit with clearer documents.' },
     resubmit:  { bg:'rgba(245,158,11,.08)', border:'rgba(245,158,11,.25)', icon: AlertCircle,  iconColor:'#f59e0b', title:'Resubmission Required',   sub: kyc.rejectionNote || 'Please upload clearer document images and resubmit.' },
@@ -312,7 +312,7 @@ export default function KYCPage() {
                     {inp('lastName',  'Last Name',  'text', 'Doe')}
                   </div>
                   <div className="two-col">
-                    {inp('nationality', 'Nationality', 'text', 'e.g. Nigerian')}
+                    {inp('nationality', 'Nationality', 'text', 'eg. United States')}
                     {inp('dob', 'Document Expiry Date', 'date', '')}
                   </div>
                   {inp('documentNumber', 'Document Number', 'text', 'e.g. A12345678', true)}

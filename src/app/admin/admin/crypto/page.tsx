@@ -122,7 +122,7 @@ function UpsertModal({existing,onClose,onDone}:{existing?:CryptoAddress;onClose:
             </div>
           )}
 
-          <div><Lbl t="Label (optional)"/><input value={label} onChange={e=>setLabel(e.target.value)} placeholder={`e.g. NexaBank ${cfg.coin} Hot Wallet`} style={inp} onFocus={fg} onBlur={bl}/></div>
+          <div><Lbl t="Label (optional)"/><input value={label} onChange={e=>setLabel(e.target.value)} placeholder={`e.g. Securesphere ${cfg.coin} Hot Wallet`} style={inp} onFocus={fg} onBlur={bl}/></div>
 
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
             <div><Lbl t={`Min Deposit (${cfg.coin})`}/><input type="number" min="0" step="any" value={minDep} onChange={e=>setMinDep(e.target.value)} style={inp} onFocus={fg} onBlur={bl}/></div>
