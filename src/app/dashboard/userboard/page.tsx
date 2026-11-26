@@ -84,7 +84,7 @@ const KYC_BANNER: Record<KYCStatus, {
 
 export default function DashboardPage() {
   const user                        = useAuthStore(s => s.user);
-  const updateUser                  = useAuthStore(s => s.updateUser);
+  const setUser                     = useAuthStore(s => s.setUser);
   const [dashboard,    setDashboard]    = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading,      setLoading]      = useState(true);
@@ -100,21 +100,30 @@ export default function DashboardPage() {
 
   const fmt = (n: number) => fmtC(n, primaryCurrency);
 
-  const load = async () => {
+  /* Re-fetch the current user so server-side changes (KYC approval, credit
+     score, etc.) replace the stale copy saved in localStorage. Runs on its own
+     so a failure in the dashboard/transactions calls can't skip it. */
+  const refreshUser = async () => {
     try {
-      const [dashRes, txRes, profileRes] = await Promise.all([
+      const res     = await api.get(PROFILE_ENDPOINT);
+      const profile = res.data?.data;
+      if (!profile) return;
+      const current = useAuthStore.getState().user as any;
+      setUser({ ...(current ?? {}), ...profile, id: current?.id ?? profile._id });
+    } catch (err) {
+      console.warn('Could not refresh user profile', err);
+    }
+  };
+
+  const load = async () => {
+    refreshUser();
+    try {
+      const [dashRes, txRes] = await Promise.all([
         api.get('/accounts/dashboard'),
         api.get('/transactions?limit=5'),
-        // Re-fetch the user so changes made server-side (KYC approval,
-        // credit score, etc.) replace the stale copy saved in localStorage.
-        // A failure here must not break the rest of the dashboard.
-        api.get(PROFILE_ENDPOINT).catch(() => null),
       ]);
       setDashboard(dashRes.data.data);
       setTransactions(txRes.data.data.transactions ?? []);
-
-      const profile = profileRes?.data?.data;
-      if (profile) updateUser(profile);
     } catch {}
     setLoading(false);
   };
