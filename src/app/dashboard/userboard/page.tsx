@@ -11,6 +11,10 @@ import {
 import api from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
 
+/* Endpoint that returns the CURRENT user (UsersService.getProfile).
+   Change this if your users controller uses a different route. */
+const PROFILE_ENDPOINT = '/users/profile';
+
 /* ── Currency formatter — uses account's own currency ── */
 function fmtC(amount: number, currency: string): string {
   try {
@@ -80,6 +84,7 @@ const KYC_BANNER: Record<KYCStatus, {
 
 export default function DashboardPage() {
   const user                        = useAuthStore(s => s.user);
+  const updateUser                  = useAuthStore(s => s.updateUser);
   const [dashboard,    setDashboard]    = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading,      setLoading]      = useState(true);
@@ -97,12 +102,19 @@ export default function DashboardPage() {
 
   const load = async () => {
     try {
-      const [dashRes, txRes] = await Promise.all([
+      const [dashRes, txRes, profileRes] = await Promise.all([
         api.get('/accounts/dashboard'),
         api.get('/transactions?limit=5'),
+        // Re-fetch the user so changes made server-side (KYC approval,
+        // credit score, etc.) replace the stale copy saved in localStorage.
+        // A failure here must not break the rest of the dashboard.
+        api.get(PROFILE_ENDPOINT).catch(() => null),
       ]);
       setDashboard(dashRes.data.data);
       setTransactions(txRes.data.data.transactions ?? []);
+
+      const profile = profileRes?.data?.data;
+      if (profile) updateUser(profile);
     } catch {}
     setLoading(false);
   };
