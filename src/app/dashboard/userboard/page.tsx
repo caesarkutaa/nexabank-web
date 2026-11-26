@@ -11,6 +11,10 @@ import {
 import api from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
 
+/* Endpoint that returns the CURRENT user (UsersService.getProfile).
+   Change this if your users controller uses a different route. */
+const PROFILE_ENDPOINT = '/users/profile';
+
 /* ── Currency formatter — uses account's own currency ── */
 function fmtC(amount: number, currency: string): string {
   try {
@@ -80,6 +84,7 @@ const KYC_BANNER: Record<KYCStatus, {
 
 export default function DashboardPage() {
   const user                        = useAuthStore(s => s.user);
+  const setUser                     = useAuthStore(s => s.setUser);
   const [dashboard,    setDashboard]    = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading,      setLoading]      = useState(true);
@@ -95,7 +100,23 @@ export default function DashboardPage() {
 
   const fmt = (n: number) => fmtC(n, primaryCurrency);
 
+  /* Re-fetch the current user so server-side changes (KYC approval, credit
+     score, etc.) replace the stale copy saved in localStorage. Runs on its own
+     so a failure in the dashboard/transactions calls can't skip it. */
+  const refreshUser = async () => {
+    try {
+      const res     = await api.get(PROFILE_ENDPOINT);
+      const profile = res.data?.data;
+      if (!profile) return;
+      const current = useAuthStore.getState().user as any;
+      setUser({ ...(current ?? {}), ...profile, id: current?.id ?? profile._id });
+    } catch (err) {
+      console.warn('Could not refresh user profile', err);
+    }
+  };
+
   const load = async () => {
+    refreshUser();
     try {
       const [dashRes, txRes] = await Promise.all([
         api.get('/accounts/dashboard'),
